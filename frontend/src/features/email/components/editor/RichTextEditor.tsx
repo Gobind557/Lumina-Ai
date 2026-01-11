@@ -1,6 +1,6 @@
 import { ChangeEvent, useState, useEffect } from "react";
 import { Sparkles } from "lucide-react";
-import WhyAISuggestion from "./WhyAISuggestion";
+import WhyAISuggestion from "../ai/WhyAISuggestion";
 
 interface AISuggestion {
   id: string;
@@ -67,7 +67,7 @@ export default function RichTextEditor({
         value={value}
         onChange={handleChange}
         placeholder="Hi James,&#10;&#10;I noticed from your recent LinkedIn post that you're focused on [insert personalized text here].&#10;&#10;I'd love to connect and discuss how our solutions can help you achieve your goals."
-        className="w-full flex-1 bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed"
+        className="w-full min-h-[200px] flex-1 bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       />
 
       {/* AI Suggestion Indicator */}

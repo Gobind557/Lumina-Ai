@@ -1,10 +1,10 @@
 import { MoreVertical } from "lucide-react";
-import ProspectInsights from "./ProspectInsights";
-import SendReadiness from "./SendReadiness";
-import SendModesPanel from "./SendModesPanel";
-import ToneCard from "./ToneCard";
+import ProspectInsights from "../insights/ProspectInsights";
+import SendReadiness from "../insights/SendReadiness";
+import SendModesPanel from "../send/SendModesPanel";
+import ToneCard from "../ui/ToneCard";
 import type { EmailDraft } from "@/shared/types";
-import type { SendMode } from "./SendModes";
+import type { SendMode } from "../send/SendModes";
 
 interface CopilotPanelProps {
   draft: EmailDraft;
@@ -45,9 +45,12 @@ export default function CopilotPanel({
         <SendReadiness
           replyProbability={replyProbability}
           spamRisk="low"
-          personalizationStrength={personalizationStrength}
         />
-        <ToneCard tone={tone} onToneChange={onToneChange} />
+        <ToneCard 
+          tone={tone} 
+          personalizationStrength={personalizationStrength}
+          onToneChange={onToneChange} 
+        />
         <SendModesPanel
           selectedMode={sendMode}
           onModeChange={onSendModeChange}
