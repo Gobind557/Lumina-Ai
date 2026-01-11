@@ -10,7 +10,7 @@ export default function EmailInsights({ draft, prospectName = 'James' }: EmailIn
 
   // Calculate insights based on email content
   const wordCount = draft.content.trim().split(/\s+/).filter(Boolean).length
-  const charCount = draft.content.length
+  
   const hasPersonalization = draft.content.toLowerCase().includes(prospectName.toLowerCase()) || 
                             draft.content.includes('[insert personalized text here]')
   const personalizationScore = hasPersonalization ? 75 : 30

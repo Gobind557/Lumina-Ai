@@ -10,16 +10,15 @@ export default function SpamScore({ score }: SpamScoreProps) {
   const defaultScore: SpamScoreType = {
     score: 3,
     maxScore: 10,
-    status: 'SAFE',
+    status: "SAFE",
   }
 
-  const data = score || defaultScore
+  const data = score ?? defaultScore
   const percentage = (data.score / data.maxScore) * 100
   const isLow = data.score <= SPAM_SCORE_THRESHOLDS.LOW
   const isMedium =
     data.score > SPAM_SCORE_THRESHOLDS.LOW &&
     data.score <= SPAM_SCORE_THRESHOLDS.MEDIUM
-  const isHigh = data.score > SPAM_SCORE_THRESHOLDS.MEDIUM
 
   const getColor = () => {
     if (isLow) return 'text-green-500'
@@ -39,8 +38,15 @@ export default function SpamScore({ score }: SpamScoreProps) {
     return 'High Risk'
   }
 
+  // Add subtle animation when spam risk is low
+  const isLowRisk = isLow
+
   return (
-    <div className="bg-blue-900/30 backdrop-blur-md border border-blue-800/40 rounded-lg p-3 space-y-2.5 flex-shrink-0">
+    <div
+      className={`bg-blue-900/30 backdrop-blur-md border border-blue-800/40 rounded-lg p-3 space-y-2.5 flex-shrink-0 transition-all duration-500 ${
+        isLowRisk ? 'shadow-md shadow-green-500/10' : ''
+      }`}
+    >
       <h3 className="text-xs font-semibold text-blue-300 uppercase tracking-wide">
         Spam Risk
       </h3>

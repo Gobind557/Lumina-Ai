@@ -7,7 +7,6 @@ interface QuickStatsProps {
 
 export default function QuickStats({ draft }: QuickStatsProps) {
   const wordCount = draft.content.trim().split(/\s+/).filter(Boolean).length
-  const charCount = draft.content.length
   const estimatedReadTime = Math.ceil(wordCount / 200) // Average reading speed: 200 words/min
 
   return (
