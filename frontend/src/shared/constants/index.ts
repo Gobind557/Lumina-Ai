@@ -3,6 +3,8 @@
 export const ROUTES = {
   DASHBOARD: '/',
   CAMPAIGNS: '/campaigns',
+  CAMPAIGNS_NEW: '/campaigns/new',
+  CAMPAIGNS_VIEW: '/campaigns/:id',
   TEMPLATES: '/templates',
   TEMPLATES_NEW: '/templates/new',
   TEMPLATES_EDIT: '/templates/:id',

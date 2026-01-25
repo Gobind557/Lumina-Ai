@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Layout } from './shared/components'
 import { Dashboard } from './features/dashboard'
 import { EmailComposer } from './features/email'
-import { Campaigns } from './features/campaigns'
+import { Campaigns, CreateCampaign, CampaignDetail } from './features/campaigns'
 import { Templates, CreateTemplate, EditTemplate } from './features/templates'
 import { ROUTES } from './shared/constants'
 
@@ -14,6 +14,8 @@ function App() {
           <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
           <Route path={ROUTES.COMPOSE} element={<EmailComposer />} />
           <Route path={ROUTES.CAMPAIGNS} element={<Campaigns />} />
+          <Route path={ROUTES.CAMPAIGNS_NEW} element={<CreateCampaign />} />
+          <Route path={ROUTES.CAMPAIGNS_VIEW} element={<CampaignDetail />} />
           <Route path={ROUTES.TEMPLATES} element={<Templates />} />
           <Route path={ROUTES.TEMPLATES_NEW} element={<CreateTemplate />} />
           <Route path={ROUTES.TEMPLATES_EDIT} element={<EditTemplate />} />
