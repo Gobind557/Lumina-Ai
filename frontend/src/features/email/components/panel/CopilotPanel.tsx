@@ -42,14 +42,11 @@ export default function CopilotPanel({
 
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col space-y-4">
         <ProspectInsights />
-        <SendReadiness
-          replyProbability={replyProbability}
-          spamRisk="low"
-        />
-        <ToneCard 
-          tone={tone} 
+        <SendReadiness replyProbability={replyProbability} spamRisk="low" />
+        <ToneCard
+          tone={tone}
           personalizationStrength={personalizationStrength}
-          onToneChange={onToneChange} 
+          onToneChange={onToneChange}
         />
         <SendModesPanel
           selectedMode={sendMode}

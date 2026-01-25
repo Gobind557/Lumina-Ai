@@ -1,21 +1,19 @@
-import { Smile, Check, HelpCircle } from 'lucide-react'
+import { Smile, Check, HelpCircle } from "lucide-react";
 
 interface SendReadinessProps {
-  replyProbability?: number
-  spamRisk?: 'low' | 'medium' | 'high'
+  replyProbability?: number;
+  spamRisk?: "low" | "medium" | "high";
 }
 
 export default function SendReadiness({
   replyProbability = 87,
-  spamRisk = 'low',
+  spamRisk = "low",
 }: SendReadinessProps) {
   return (
     <div className="space-y-3">
       {/* Section Header */}
       <div className="flex items-center gap-1.5">
-        <h3 className="text-sm font-medium text-white">
-          Send Readiness:
-        </h3>
+        <h3 className="text-sm font-medium text-white">Send Readiness:</h3>
         <HelpCircle className="w-4 h-4 text-blue-300 cursor-help" />
       </div>
 
@@ -28,9 +26,7 @@ export default function SendReadiness({
             <span className="text-sm text-white">Reply Likelihood</span>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
-            <span className="text-sm font-medium text-blue-300">
-              High
-            </span>
+            <span className="text-sm font-medium text-blue-300">High</span>
             <span className="text-sm font-semibold text-green-500">
               -{replyProbability}%
             </span>
@@ -53,5 +49,5 @@ export default function SendReadiness({
         </div>
       </div>
     </div>
-  )
+  );
 }

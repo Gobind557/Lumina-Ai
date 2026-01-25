@@ -1,40 +1,43 @@
-import { useState, useRef, useEffect } from 'react'
-import { FileText, Smile, ChevronRight } from 'lucide-react'
+import { useState, useRef, useEffect } from "react";
+import { FileText, Smile, ChevronRight } from "lucide-react";
 
 interface ToneCardProps {
-  tone?: 'formal' | 'casual'
-  personalizationStrength?: 'weak' | 'moderate' | 'strong'
-  onToneChange?: (tone: 'formal' | 'casual') => void
+  tone?: "formal" | "casual";
+  personalizationStrength?: "weak" | "moderate" | "strong";
+  onToneChange?: (tone: "formal" | "casual") => void;
 }
 
-export default function ToneCard({ 
-  tone = 'casual', 
-  personalizationStrength = 'strong',
-  onToneChange 
+export default function ToneCard({
+  tone = "casual",
+  personalizationStrength = "strong",
+  onToneChange,
 }: ToneCardProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
       }
-    }
+    };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isOpen])
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
-  const handleToneSelect = (selectedTone: 'formal' | 'casual') => {
-    onToneChange?.(selectedTone)
-    setIsOpen(false)
-  }
+  const handleToneSelect = (selectedTone: "formal" | "casual") => {
+    onToneChange?.(selectedTone);
+    setIsOpen(false);
+  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -65,7 +68,8 @@ export default function ToneCard({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-sm font-semibold text-green-500">
-              {personalizationStrength.charAt(0).toUpperCase() + personalizationStrength.slice(1)}
+              {personalizationStrength.charAt(0).toUpperCase() +
+                personalizationStrength.slice(1)}
             </span>
           </div>
         </div>
@@ -76,35 +80,43 @@ export default function ToneCard({
         <div className="absolute left-0 right-0 top-full mt-2 z-50 bg-blue-900/95 backdrop-blur-xl border border-blue-800/60 rounded-lg shadow-xl animate-fade-in overflow-hidden">
           <div className="p-1.5">
             <button
-              onClick={() => handleToneSelect('casual')}
+              onClick={() => handleToneSelect("casual")}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                tone === 'casual'
-                  ? 'bg-blue-800/50 text-white'
-                  : 'hover:bg-blue-800/30 text-gray-200'
+                tone === "casual"
+                  ? "bg-blue-800/50 text-white"
+                  : "hover:bg-blue-800/30 text-gray-200"
               }`}
             >
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                tone === 'casual' ? 'bg-blue-400' : 'bg-transparent border border-blue-600'
-              }`}></div>
+              <div
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  tone === "casual"
+                    ? "bg-blue-400"
+                    : "bg-transparent border border-blue-600"
+                }`}
+              ></div>
               <span className="text-sm font-medium">Casual</span>
-              {tone === 'casual' && (
+              {tone === "casual" && (
                 <span className="ml-auto text-xs text-blue-300">✓</span>
               )}
             </button>
-            
+
             <button
-              onClick={() => handleToneSelect('formal')}
+              onClick={() => handleToneSelect("formal")}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                tone === 'formal'
-                  ? 'bg-blue-800/50 text-white'
-                  : 'hover:bg-blue-800/30 text-gray-200'
+                tone === "formal"
+                  ? "bg-blue-800/50 text-white"
+                  : "hover:bg-blue-800/30 text-gray-200"
               }`}
             >
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                tone === 'formal' ? 'bg-blue-400' : 'bg-transparent border border-blue-600'
-              }`}></div>
+              <div
+                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                  tone === "formal"
+                    ? "bg-blue-400"
+                    : "bg-transparent border border-blue-600"
+                }`}
+              ></div>
               <span className="text-sm font-medium">Formal</span>
-              {tone === 'formal' && (
+              {tone === "formal" && (
                 <span className="ml-auto text-xs text-blue-300">✓</span>
               )}
             </button>
@@ -112,5 +124,5 @@ export default function ToneCard({
         </div>
       )}
     </div>
-  )
+  );
 }

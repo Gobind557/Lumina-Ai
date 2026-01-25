@@ -1,26 +1,26 @@
-import type { Prospect } from '@/shared/types'
+import type { Prospect } from "@/shared/types";
 
 interface ProspectInsightsProps {
-  prospect?: Prospect
+  prospect?: Prospect;
 }
 
 export default function ProspectInsights({ prospect }: ProspectInsightsProps) {
   // Default data for MVP
   const defaultProspect: Prospect = {
-    id: '1',
-    name: 'James Carter',
-    email: 'james@technova.com',
-    title: 'VP of Sales',
-    company: 'TechNova Inc.',
-    location: 'San Francisco, CA',
-  }
+    id: "1",
+    name: "James Carter",
+    email: "james@technova.com",
+    title: "VP of Sales",
+    company: "TechNova Inc.",
+    location: "San Francisco, CA",
+  };
 
-  const data = prospect || defaultProspect
+  const data = prospect || defaultProspect;
   const initials = data.name
-    .split(' ')
+    .split(" ")
     .map((n) => n[0])
-    .join('')
-    .toUpperCase()
+    .join("")
+    .toUpperCase();
 
   return (
     <div className="bg-blue-900/30 backdrop-blur-md border border-blue-800/40 rounded-lg p-4 space-y-3 flex-shrink-0 hover:border-blue-700/50 transition-all duration-300">
@@ -50,5 +50,5 @@ export default function ProspectInsights({ prospect }: ProspectInsightsProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

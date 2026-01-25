@@ -1,13 +1,13 @@
-import { Sparkles, Theater, Scissors, Brain, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
+import { Sparkles, Theater, Scissors, Brain, TrendingUp } from "lucide-react";
+import { useState } from "react";
 
 interface AIActionBarProps {
-  onPersonalize?: () => void
-  onToneChange?: (tone: 'formal' | 'casual') => void
-  onShorten?: () => void
-  onImprove?: () => void
-  onOptimizeReply?: () => void
-  currentTone?: 'formal' | 'casual'
+  onPersonalize?: () => void;
+  onToneChange?: (tone: "formal" | "casual") => void;
+  onShorten?: () => void;
+  onImprove?: () => void;
+  onOptimizeReply?: () => void;
+  currentTone?: "formal" | "casual";
 }
 
 export default function AIActionBar({
@@ -16,15 +16,15 @@ export default function AIActionBar({
   onShorten,
   onImprove,
   onOptimizeReply,
-  currentTone = 'casual',
+  currentTone = "casual",
 }: AIActionBarProps) {
-  const [tone, setTone] = useState<'formal' | 'casual'>(currentTone)
+  const [tone, setTone] = useState<"formal" | "casual">(currentTone);
 
   const handleToneToggle = () => {
-    const newTone = tone === 'formal' ? 'casual' : 'formal'
-    setTone(newTone)
-    onToneChange?.(newTone)
-  }
+    const newTone = tone === "formal" ? "casual" : "formal";
+    setTone(newTone);
+    onToneChange?.(newTone);
+  };
 
   return (
     <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200/50 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
@@ -76,5 +76,5 @@ export default function AIActionBar({
         <span className="text-gray-400">→</span>
       </button>
     </div>
-  )
+  );
 }
