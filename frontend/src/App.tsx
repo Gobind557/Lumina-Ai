@@ -3,7 +3,7 @@ import { Layout } from './shared/components'
 import { Dashboard } from './features/dashboard'
 import { EmailComposer } from './features/email'
 import { Campaigns } from './features/campaigns'
-import { Templates } from './features/templates'
+import { Templates, CreateTemplate, EditTemplate } from './features/templates'
 import { ROUTES } from './shared/constants'
 
 function App() {
@@ -15,6 +15,8 @@ function App() {
           <Route path={ROUTES.COMPOSE} element={<EmailComposer />} />
           <Route path={ROUTES.CAMPAIGNS} element={<Campaigns />} />
           <Route path={ROUTES.TEMPLATES} element={<Templates />} />
+          <Route path={ROUTES.TEMPLATES_NEW} element={<CreateTemplate />} />
+          <Route path={ROUTES.TEMPLATES_EDIT} element={<EditTemplate />} />
           <Route path="*" element={<Navigate to={ROUTES.DASHBOARD} replace />} />
         </Routes>
       </Layout>

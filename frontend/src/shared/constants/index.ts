@@ -4,6 +4,8 @@ export const ROUTES = {
   DASHBOARD: '/',
   CAMPAIGNS: '/campaigns',
   TEMPLATES: '/templates',
+  TEMPLATES_NEW: '/templates/new',
+  TEMPLATES_EDIT: '/templates/:id',
   COMPOSE: '/compose',
 } as const
 
