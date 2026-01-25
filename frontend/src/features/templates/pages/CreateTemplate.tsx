@@ -25,7 +25,7 @@ export default function CreateTemplate() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative">
+    <div className="h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative">
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <div
           className="absolute inset-0"

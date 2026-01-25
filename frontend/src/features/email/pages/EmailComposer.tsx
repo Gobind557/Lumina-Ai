@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Bold,
   Italic,
@@ -20,9 +21,26 @@ import {
   type SendMode,
 } from "../components";
 import { useEmailDraft } from "../hooks";
+import { MOCK_TEMPLATES } from "../../templates/data/mockTemplates";
+import type { EmailDraft } from "../../../shared/types";
 
 export default function EmailComposer() {
-  const { draft, updateSubject, updateContent } = useEmailDraft();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get("templateId");
+  const initialDraft = useMemo<EmailDraft | undefined>(() => {
+    if (!templateId) return undefined;
+    const template = MOCK_TEMPLATES.find((item) => item.id === templateId);
+    if (!template) return undefined;
+    const now = new Date();
+    return {
+      id: template.id,
+      subject: template.title,
+      content: template.description,
+      createdAt: now,
+      updatedAt: now,
+    };
+  }, [templateId]);
+  const { draft, updateSubject, updateContent } = useEmailDraft(initialDraft);
   const [aiState, setAIState] = useState<AIState>("idle");
   const [aiConfidence, setAIConfidence] = useState<number>(0.87);
   const [sendMode, setSendMode] = useState<SendMode>("send_at_best_time");

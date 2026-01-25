@@ -49,7 +49,7 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
   };
 
   const handleCardClick = () => {
-    navigate(ROUTES.TEMPLATES_EDIT.replace(":id", template.id));
+    navigate(`${ROUTES.COMPOSE}?templateId=${encodeURIComponent(template.id)}`);
   };
 
   return (
@@ -70,12 +70,14 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
           <div className="flex items-center gap-1">
             {template.isRecent && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
-                Recent
+                Updated recently
               </span>
             )}
             <button
               onClick={handleFavorite}
               className="p-1 rounded text-gray-400 hover:text-yellow-400 transition-colors"
+              aria-label={favorite ? "Unpin template" : "Pin template"}
+              title={favorite ? "Unpin template" : "Pin template"}
             >
               <Star
                 className={`w-4 h-4 ${favorite ? "fill-yellow-400 text-yellow-400" : ""}`}
@@ -161,6 +163,9 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
             )}
           </div>
         )}
+        <div className="absolute bottom-4 right-5 text-xs text-blue-300/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          Open in Compose →
+        </div>
       </div>
     </div>
   );

@@ -84,7 +84,6 @@ export default function EditTemplate() {
               onContentChange={setContent}
               status={title ? `Draft: ${title}` : "Draft: Untitled Template"}
               onCreateTemplate={handleSaveTemplate}
-              submitLabel="Save Template"
               onImproveClarity={() => {}}
               onChangeTone={() => {}}
               onOptimizeReplies={() => {}}

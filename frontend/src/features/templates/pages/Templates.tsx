@@ -95,7 +95,7 @@ export default function Templates() {
 
         <div className="mt-10 pt-2 text-center">
           <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors py-1">
-            View More...
+            View all templates
           </button>
         </div>
       </div>

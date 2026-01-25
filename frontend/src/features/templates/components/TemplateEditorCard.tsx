@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Sparkles, ChevronDown, HelpCircle } from "lucide-react";
+import { Sparkles, ChevronDown, HelpCircle, Loader2, Check } from "lucide-react";
 
 interface TemplateEditorCardProps {
   content: string;
   onContentChange: (value: string) => void;
   status?: string;
   onCreateTemplate: () => void;
-  submitLabel?: string;
   onImproveClarity?: () => void;
   onChangeTone?: () => void;
   onOptimizeReplies?: () => void;
@@ -24,12 +23,12 @@ export default function TemplateEditorCard({
   onContentChange,
   status = "Draft: Untitled Template",
   onCreateTemplate,
-  submitLabel = "Create Template",
   onImproveClarity,
   onChangeTone,
   onOptimizeReplies,
 }: TemplateEditorCardProps) {
-  const [saveStatus, setSaveStatus] = useState("All Changes Saved");
+  const [saveStatus, setSaveStatus] = useState("All changes saved");
+  const isSaving = saveStatus === "Saving...";
 
   return (
     <div className="bg-blue-900/30 backdrop-blur-xl border border-blue-800/40 rounded-xl p-6 shadow-2xl shadow-blue-500/20 flex flex-col relative overflow-hidden">
@@ -42,9 +41,12 @@ export default function TemplateEditorCard({
       </p>
 
       <div className="flex items-center justify-between mb-4 px-3 py-2 bg-slate-800/30 rounded-xl border border-blue-800/30">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-300">{status}</span>
-          <ChevronDown className="w-4 h-4 text-gray-400" />
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-300">{status}</span>
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          </div>
+          <span className="text-xs text-gray-500">Drafts are auto-saved</span>
         </div>
         <button className="p-1 text-gray-400 hover:text-white">
           <HelpCircle className="w-4 h-4" />
@@ -84,13 +86,20 @@ export default function TemplateEditorCard({
           onChange={(e) => {
             onContentChange(e.target.value);
             setSaveStatus("Saving...");
-            setTimeout(() => setSaveStatus("All Changes Saved"), 800);
+            setTimeout(() => setSaveStatus("All changes saved"), 800);
           }}
           placeholder={DEFAULT_PLACEHOLDER}
           className="w-full min-h-[240px] p-4 bg-transparent text-white placeholder-gray-500 resize-none focus:outline-none text-sm leading-relaxed"
         />
         <div className="flex items-center justify-between px-4 py-2 border-t border-blue-800/30 text-xs text-gray-500">
-          <span>{saveStatus}</span>
+          <span className="flex items-center gap-2">
+            {isSaving ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />
+            ) : (
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            {saveStatus}
+          </span>
           <ChevronDown className="w-4 h-4" />
         </div>
       </div>
@@ -123,7 +132,7 @@ export default function TemplateEditorCard({
         onClick={onCreateTemplate}
         className="w-full py-3 bg-blue-600 hover:bg-blue-500 border border-blue-500/50 rounded-xl text-white font-medium shadow-lg shadow-blue-500/20 transition-colors"
       >
-        {submitLabel}
+        Create Template
       </button>
       </div>
     </div>
