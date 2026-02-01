@@ -11,7 +11,7 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-48 glass-nav border-r border-blue-900/50 flex flex-col">
+    <aside className="w-52 bg-white/70 backdrop-blur-xl border-r border-slate-200/70 flex flex-col">
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -21,10 +21,10 @@ export default function Sidebar() {
               to={item.path}
               className={({ isActive }) =>
                 clsx(
-                  "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200",
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
                   isActive
-                    ? "bg-blue-900/60 text-white border border-blue-700/50 shadow-sm"
-                    : "text-blue-200 hover:bg-blue-900/30 hover:text-white"
+                    ? "bg-white text-slate-900 border border-slate-200/70 shadow-sm"
+                    : "text-slate-600 hover:bg-white hover:text-slate-900"
                 )
               }
             >
@@ -37,10 +37,10 @@ export default function Sidebar() {
           to={ROUTES.COMPOSE}
           className={({ isActive }) =>
             clsx(
-              "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 mt-4",
+              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 mt-4",
               isActive
-                ? "bg-blue-900/60 text-white border border-blue-700/50 shadow-sm"
-                : "text-blue-200 hover:bg-blue-900/30 hover:text-white"
+                ? "bg-white text-slate-900 border border-slate-200/70 shadow-sm"
+                : "text-slate-600 hover:bg-white hover:text-slate-900"
             )
           }
         >
@@ -48,8 +48,8 @@ export default function Sidebar() {
           <span className="font-medium">Compose</span>
         </NavLink>
       </nav>
-      <div className="p-4 border-t border-blue-900/50">
-        <button className="w-full flex items-center justify-center p-2 text-blue-300 hover:text-white transition-colors">
+      <div className="p-4 border-t border-slate-200/70">
+        <button className="w-full flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 transition-colors">
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>

@@ -58,16 +58,11 @@ const getActionIcon = (actionType: NextAction["actionType"]) => {
 
 export default function WhatToDoNextCard() {
   return (
-    <div className="bg-blue-900/30 backdrop-blur-xl border border-blue-800/40 rounded-lg p-6 shadow-2xl shadow-blue-500/20 relative overflow-hidden h-full flex flex-col">
-      {/* Enhanced Glassmorphic overlay effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 to-transparent pointer-events-none"></div>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
-      
+    <div className="glass-card p-6 relative overflow-hidden h-full flex flex-col">
       <div className="relative z-10 flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-white">What to do next</h3>
+          <h3 className="text-lg font-semibold text-slate-900">What to do next</h3>
         </div>
 
         {/* Actions List */}
@@ -75,33 +70,33 @@ export default function WhatToDoNextCard() {
           {actions.map((action, index) => (
             <div key={index} className="flex items-start gap-3">
               {/* Avatar */}
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white text-sm font-semibold">
                 {getInitials(action.name)}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-white">{action.name}</span>
+                  <span className="text-sm font-medium text-slate-900">{action.name}</span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   {getActionIcon(action.actionType)}
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-slate-500">
                     {action.action}
                     {action.probability && (
-                      <span className="text-green-400 font-semibold ml-1">
+                      <span className="text-emerald-600 font-semibold ml-1">
                         &gt; {action.probability}%
                       </span>
                     )}
                   </span>
                 </div>
                 {action.reasoning && (
-                  <p className="text-xs text-gray-500 mb-2">{action.reasoning}</p>
+                  <p className="text-xs text-slate-400 mb-2">{action.reasoning}</p>
                 )}
-                <button className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-xs text-blue-300 transition-colors relative">
+                <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors relative">
                   {action.actionLabel}
                   {action.buttonLabel && (
-                    <span className="ml-1.5 text-[10px] text-gray-400">{action.buttonLabel}</span>
+                    <span className="ml-1.5 text-[10px] text-slate-500">{action.buttonLabel}</span>
                   )}
                 </button>
               </div>

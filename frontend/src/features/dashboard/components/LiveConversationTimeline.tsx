@@ -27,11 +27,11 @@ export default function LiveConversationTimeline() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-slate-800/95 backdrop-blur-xl border border-blue-700/50 rounded-lg p-3 shadow-xl min-w-[200px]">
-          <p className="text-sm font-semibold text-white mb-1">W:R Yeang</p>
-          <p className="text-xs text-gray-300 mb-1">Opened 5m yesterday</p>
-          <p className="text-xs text-blue-400 mb-1">13 Replies from Sarah Mitchell</p>
-          <p className="text-xs text-gray-400">Top template: Cold Outreach</p>
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-lg p-3 shadow-xl min-w-[200px]">
+          <p className="text-sm font-semibold text-slate-900 mb-1">W:R Yeang</p>
+          <p className="text-xs text-slate-600 mb-1">Opened 5m yesterday</p>
+          <p className="text-xs text-indigo-600 mb-1">13 Replies from Sarah Mitchell</p>
+          <p className="text-xs text-slate-500">Top template: Cold Outreach</p>
         </div>
       );
     }
@@ -62,7 +62,7 @@ export default function LiveConversationTimeline() {
         y={y}
         dy={16}
         textAnchor="middle"
-        fill={isTue ? "#60a5fa" : "#9ca3af"}
+        fill={isTue ? "#4f46e5" : "#64748b"}
         fontSize={12}
         fontWeight={isTue ? 600 : 400}
       >
@@ -72,20 +72,15 @@ export default function LiveConversationTimeline() {
   };
 
   return (
-    <div className="bg-blue-900/30 backdrop-blur-xl border border-blue-800/40 rounded-lg p-6 shadow-2xl shadow-blue-500/20 relative overflow-hidden">
-      {/* Enhanced Glassmorphic overlay effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 to-transparent pointer-events-none"></div>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
-      
+    <div className="glass-card p-6 relative overflow-hidden">
       <div className="relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-white">Live Conversation Timeline</h3>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-green-500/20 border border-green-500/30 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></div>
-              <span className="text-xs text-green-400 font-medium">LIVE</span>
+            <h3 className="text-lg font-semibold text-slate-900">Live Conversation Timeline</h3>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/15 border border-emerald-400/30 rounded-full">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-xs text-emerald-600 font-medium">LIVE</span>
             </div>
           </div>
         </div>
@@ -96,8 +91,8 @@ export default function LiveConversationTimeline() {
             onClick={() => setActiveTab("today")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "today"
-                ? "bg-blue-600 text-white"
-                : "bg-blue-900/20 text-gray-300 hover:bg-blue-900/30"
+                ? "bg-indigo-600 text-white"
+                : "bg-white/70 text-slate-600 hover:bg-white"
             }`}
           >
             Today
@@ -106,19 +101,19 @@ export default function LiveConversationTimeline() {
             onClick={() => setActiveTab("replies")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "replies"
-                ? "bg-blue-600 text-white"
-                : "bg-blue-900/20 text-gray-300 hover:bg-blue-900/30"
+                ? "bg-indigo-600 text-white"
+                : "bg-white/70 text-slate-600 hover:bg-white"
             }`}
           >
             Replies
-            <div className="w-2 h-2 rounded-full bg-blue-400"></div>
+            <div className="w-2 h-2 rounded-full bg-indigo-400"></div>
           </button>
           <button
             onClick={() => setActiveTab("closed")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
               activeTab === "closed"
                 ? "bg-purple-600 text-white"
-                : "bg-blue-900/20 text-gray-300 hover:bg-blue-900/30"
+                : "bg-white/70 text-slate-600 hover:bg-white"
             }`}
           >
             Closed
@@ -135,7 +130,7 @@ export default function LiveConversationTimeline() {
             >
               <CartesianGrid
                 strokeDasharray="0"
-                stroke="rgba(30, 58, 138, 0.2)"
+                stroke="rgba(148, 163, 184, 0.35)"
                 vertical={false}
               />
               <XAxis
@@ -148,14 +143,14 @@ export default function LiveConversationTimeline() {
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "#9ca3af", fontSize: 12 }}
+                tick={{ fill: "#64748b", fontSize: 12 }}
                 domain={[0, 200]}
                 ticks={[0, 50, 100, 150, 200]}
                 tickMargin={8}
               />
               <Tooltip
                 content={<CustomTooltip />}
-                cursor={{ stroke: "#60a5fa", strokeWidth: 1, strokeDasharray: "5 5" }}
+                cursor={{ stroke: "#94a3b8", strokeWidth: 1, strokeDasharray: "5 5" }}
               />
               <Line
                 type="monotone"

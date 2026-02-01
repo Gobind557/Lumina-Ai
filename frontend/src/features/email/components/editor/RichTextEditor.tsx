@@ -62,12 +62,12 @@ export default function RichTextEditor({
   );
 
   return (
-    <div className="flex-1 px-4 pt-6 pb-4 relative flex flex-col min-h-0">
+    <div className="flex-1 px-4 pt-6 pb-4 relative flex flex-col min-h-0 bg-white/70 border border-slate-200/70 rounded-xl shadow-sm">
       <textarea
         value={value}
         onChange={handleChange}
         placeholder="Hi James,&#10;&#10;I noticed from your recent LinkedIn post that you're focused on [insert personalized text here].&#10;&#10;I'd love to connect and discuss how our solutions can help you achieve your goals."
-        className="w-full min-h-[200px] flex-1 bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none text-sm leading-relaxed overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        className="w-full min-h-[200px] flex-1 bg-transparent text-slate-900 placeholder-slate-400 resize-none focus:outline-none text-sm leading-relaxed overflow-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
       />
 
       {/* AI Suggestion Indicator */}
@@ -96,7 +96,7 @@ export default function RichTextEditor({
       )}
 
       {value && (
-        <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+        <div className="absolute bottom-3 right-3 text-xs text-slate-400">
           {value.length} characters
         </div>
       )}

@@ -25,11 +25,11 @@ export interface TemplateCardData {
 }
 
 const categoryStyles: Record<TemplateCategory, string> = {
-  "Follow-Up": "bg-green-500/20 text-green-400 border-green-500/30",
-  "Cold Outreach": "bg-blue-900/40 text-blue-300 border-blue-700/40",
-  "Announcement": "bg-purple-500/20 text-purple-400 border-purple-500/30",
-  "LinkedIn Connection": "bg-blue-500/20 text-blue-400 border-blue-500/30",
-  Humor: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  "Follow-Up": "bg-emerald-500/15 text-emerald-700 border-emerald-300/60",
+  "Cold Outreach": "bg-indigo-500/15 text-indigo-700 border-indigo-300/60",
+  "Announcement": "bg-purple-500/15 text-purple-700 border-purple-300/60",
+  "LinkedIn Connection": "bg-sky-500/15 text-sky-700 border-sky-300/60",
+  Humor: "bg-amber-500/15 text-amber-700 border-amber-300/60",
 };
 
 interface TemplateCardProps {
@@ -55,11 +55,10 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
   return (
     <div
       onClick={handleCardClick}
-      className="bg-blue-900/30 backdrop-blur-xl border border-blue-800/40 rounded-xl p-5 min-h-[220px] shadow-2xl shadow-blue-500/20 hover:border-blue-600/50 transition-all cursor-pointer relative overflow-hidden group"
+      className="glass-card border border-slate-200/70 rounded-xl p-5 min-h-[220px] shadow-[0_18px_40px_rgba(99,102,241,0.12)] hover:border-slate-300/70 transition-all cursor-pointer relative overflow-hidden group"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 pointer-events-none" />
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent pointer-events-none" />
-      <div className="absolute inset-0 bg-gradient-to-t from-blue-900/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/70 via-transparent to-indigo-50/70 pointer-events-none" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white to-transparent pointer-events-none" />
       <div className="relative z-10 flex flex-col h-full">
         <div className="flex items-start justify-between mb-3">
           <span
@@ -69,18 +68,18 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
           </span>
           <div className="flex items-center gap-1">
             {template.isRecent && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 border border-rose-300/60">
                 Updated recently
               </span>
             )}
             <button
               onClick={handleFavorite}
-              className="p-1 rounded text-gray-400 hover:text-yellow-400 transition-colors"
+              className="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
               aria-label={favorite ? "Unpin template" : "Pin template"}
               title={favorite ? "Unpin template" : "Pin template"}
             >
               <Star
-                className={`w-4 h-4 ${favorite ? "fill-yellow-400 text-yellow-400" : ""}`}
+                className={`w-4 h-4 ${favorite ? "fill-amber-500 text-amber-500" : ""}`}
               />
             </button>
             <div className="relative">
@@ -89,7 +88,7 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
                   e.stopPropagation();
                   setMenuOpen((o) => !o);
                 }}
-                className="p-1 rounded text-gray-400 hover:text-white transition-colors"
+                className="p-1 rounded text-slate-400 hover:text-slate-700 transition-colors"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -102,14 +101,14 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
                       setMenuOpen(false);
                     }}
                   />
-                  <div className="absolute right-0 top-full mt-1 py-1 w-36 bg-slate-800 border border-blue-700/50 rounded-lg shadow-xl z-20">
+                  <div className="absolute right-0 top-full mt-1 py-1 w-36 bg-white border border-slate-200/70 rounded-lg shadow-xl z-20">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(ROUTES.TEMPLATES_EDIT.replace(":id", template.id));
                         setMenuOpen(false);
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-blue-900/40"
+                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
                     >
                       Edit
                     </button>
@@ -118,7 +117,7 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
                         e.stopPropagation();
                         setMenuOpen(false);
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-blue-900/40"
+                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100"
                     >
                       Duplicate
                     </button>
@@ -127,7 +126,7 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
                         e.stopPropagation();
                         setMenuOpen(false);
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-900/20"
+                      className="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
                     >
                       Archive
                     </button>
@@ -137,33 +136,33 @@ export default function TemplateCard({ template, onFavoriteToggle }: TemplateCar
             </div>
           </div>
         </div>
-        <h3 className="text-[15px] font-semibold text-white mb-2 line-clamp-1 leading-tight">
+        <h3 className="text-[15px] font-semibold text-slate-900 mb-2 line-clamp-1 leading-tight">
           {template.title}
         </h3>
-        <p className="text-sm text-gray-400 line-clamp-2 mb-4 min-h-[2.5rem] leading-snug flex-1">
+        <p className="text-sm text-slate-500 line-clamp-2 mb-4 min-h-[2.5rem] leading-snug flex-1">
           {template.description}
         </p>
-        <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-          <FileText className="w-3.5 h-3.5 flex-shrink-0 text-gray-500" />
+        <div className="flex items-center gap-2 text-xs text-slate-500 mb-3">
+          <FileText className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
           <span>Used {template.usedCount}x · Modified {template.modifiedAgo}</span>
         </div>
         {(template.openRate != null || template.replyRate != null) && (
           <div className="flex items-center gap-4 mt-auto pt-0.5">
             {template.openRate != null && (
-              <span className="flex items-center gap-1 text-xs text-blue-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+              <span className="flex items-center gap-1 text-xs text-indigo-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
                 {template.openRate}% ▲
               </span>
             )}
             {template.replyRate != null && (
-              <span className="flex items-center gap-1 text-xs text-green-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+              <span className="flex items-center gap-1 text-xs text-emerald-600">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 {template.replyRate}% ▲
               </span>
             )}
           </div>
         )}
-        <div className="absolute bottom-4 right-5 text-xs text-blue-300/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div className="absolute bottom-4 right-5 text-xs text-indigo-500/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           Open in Compose →
         </div>
       </div>

@@ -32,11 +32,11 @@ export default function CopilotPanel({
     : ("weak" as const);
 
   return (
-    <div className="w-80 bg-blue-950/40 backdrop-blur-xl border-l border-blue-900/50 p-5 space-y-4 overflow-hidden flex flex-col h-full">
+    <div className="w-80 bg-white/70 backdrop-blur-xl border-l border-slate-200/70 p-5 space-y-4 overflow-hidden flex flex-col h-full">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
-        <h2 className="text-xl font-semibold text-white">The Copilot</h2>
-        <button className="p-1.5 hover:bg-blue-900/40 rounded transition-colors">
-          <MoreVertical className="w-4 h-4 text-blue-300" />
+        <h2 className="text-xl font-semibold text-slate-900">The Copilot</h2>
+        <button className="p-1.5 hover:bg-slate-200/70 rounded transition-colors">
+          <MoreVertical className="w-4 h-4 text-slate-500" />
         </button>
       </div>
 

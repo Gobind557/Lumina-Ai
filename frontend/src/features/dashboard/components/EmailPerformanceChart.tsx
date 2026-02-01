@@ -108,28 +108,23 @@ export default function EmailPerformanceChart() {
   }
 
   return (
-    <div className="bg-blue-900/30 backdrop-blur-xl border border-blue-800/40 rounded-lg p-4 h-full flex flex-col shadow-2xl shadow-blue-500/20 relative overflow-hidden" style={{ maxHeight: '100%' }}>
-      {/* Enhanced Glassmorphic overlay effects */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 to-transparent pointer-events-none"></div>
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/40 to-transparent"></div>
-      
+    <div className="glass-card p-4 h-full flex flex-col relative overflow-hidden" style={{ maxHeight: '100%' }}>
       <div className="relative z-10 flex-shrink-0 mb-2">
-        <h3 className="text-base font-semibold text-white mb-2">Email Performance</h3>
+        <h3 className="text-base font-semibold text-slate-900 mb-2">Email Performance</h3>
         
         {/* Legend */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-blue-400 shadow-lg shadow-blue-400/60"></div>
-            <span className="text-sm text-gray-300">Opens</span>
+            <span className="text-sm text-slate-600">Opens</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/60"></div>
-            <span className="text-sm text-gray-300">Replies</span>
+            <span className="text-sm text-slate-600">Replies</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-purple-400 shadow-lg shadow-purple-400/60"></div>
-            <span className="text-sm text-gray-300">Closed</span>
+            <span className="text-sm text-slate-600">Closed</span>
           </div>
         </div>
       </div>
@@ -316,7 +311,7 @@ export default function EmailPerformanceChart() {
               y1="0"
               x2={(hoveredIndex * 100) + 50}
               y2="200"
-              stroke="rgba(255, 255, 255, 0.3)"
+              stroke="rgba(148, 163, 184, 0.5)"
               strokeWidth="1"
               strokeDasharray="4,4"
               style={{ animation: 'fadeIn 0.2s ease' }}
@@ -327,7 +322,7 @@ export default function EmailPerformanceChart() {
         {/* X-axis labels */}
         <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4">
           {chartData.map((d) => (
-            <span key={d.day} className="text-xs text-gray-400">
+            <span key={d.day} className="text-xs text-slate-500">
               {d.day}
             </span>
           ))}
@@ -336,7 +331,7 @@ export default function EmailPerformanceChart() {
         {/* Y-axis labels */}
         <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between py-2">
           {[0, 50, 100, 150, 200].map((value) => (
-            <span key={value} className="text-xs text-gray-400">
+            <span key={value} className="text-xs text-slate-500">
               {value === 0 ? '0' : value < 1000 ? `${value}` : `${value / 1000}K`}
             </span>
           ))}
@@ -345,7 +340,7 @@ export default function EmailPerformanceChart() {
         {/* Tooltip */}
         {tooltip && (
           <div
-            className="absolute bg-slate-800/95 backdrop-blur-xl border border-blue-700/50 rounded-lg p-3 shadow-2xl z-20 pointer-events-none"
+            className="absolute bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-lg p-3 shadow-2xl z-20 pointer-events-none"
             style={{
               left: `${tooltip.x}px`,
               top: `${tooltip.y}px`,
@@ -353,22 +348,22 @@ export default function EmailPerformanceChart() {
               marginTop: '-10px',
             }}
           >
-            <div className="text-xs font-semibold text-white mb-2">{tooltip.day}</div>
+            <div className="text-xs font-semibold text-slate-900 mb-2">{tooltip.day}</div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                <span className="text-xs text-gray-300">Opens:</span>
-                <span className="text-xs font-semibold text-white">{tooltip.opens}</span>
+                <span className="text-xs text-slate-600">Opens:</span>
+                <span className="text-xs font-semibold text-slate-900">{tooltip.opens}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
-                <span className="text-xs text-gray-300">Replies:</span>
-                <span className="text-xs font-semibold text-white">{tooltip.replies}</span>
+                <span className="text-xs text-slate-600">Replies:</span>
+                <span className="text-xs font-semibold text-slate-900">{tooltip.replies}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-                <span className="text-xs text-gray-300">Closed:</span>
-                <span className="text-xs font-semibold text-white">{tooltip.closed}</span>
+                <span className="text-xs text-slate-600">Closed:</span>
+                <span className="text-xs font-semibold text-slate-900">{tooltip.closed}</span>
               </div>
             </div>
           </div>

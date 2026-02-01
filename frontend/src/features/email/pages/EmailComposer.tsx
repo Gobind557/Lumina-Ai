@@ -109,10 +109,10 @@ export default function EmailComposer() {
       <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
         {/* Card Container with Glow Ring */}
         <GlowRing aiState={aiState} confidence={aiConfidence}>
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-xl shadow-xl">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden glass-card border border-slate-200/70 shadow-[0_20px_60px_rgba(99,102,241,0.12)]">
             {/* Subject Line */}
-            <div className="flex-shrink-0 p-3 border-b border-slate-700/50">
-              <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide mb-2">
+            <div className="flex-shrink-0 p-3 border-b border-slate-200/70">
+              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Subject
               </label>
               <input
@@ -120,14 +120,14 @@ export default function EmailComposer() {
                 value={draft.subject}
                 onChange={(e) => updateSubject(e.target.value)}
                 placeholder="What's this email about?"
-                className="w-full px-3 py-2.5 bg-slate-800/30 border border-slate-600/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400 transition-all text-sm"
+                className="w-full px-3 py-2.5 bg-white/80 border border-slate-200/70 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all text-sm"
               />
             </div>
 
             {/* Email Body */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex-shrink-0 px-3 pt-4 pb-3">
-                <label className="block text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide">
                   Message
                 </label>
               </div>
@@ -151,71 +151,71 @@ export default function EmailComposer() {
                 </div>
 
                 {/* Toolbar */}
-                <div className="border-t border-slate-700/50 bg-slate-800/30 px-3 py-1.5 flex items-center gap-1 flex-wrap flex-shrink-0">
+                <div className="border-t border-slate-200/70 bg-white/70 px-3 py-1.5 flex items-center gap-1 flex-wrap flex-shrink-0">
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Bold"
                   >
-                    <Bold className="w-4 h-4 text-gray-300" />
+                    <Bold className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Italic"
                   >
-                    <Italic className="w-4 h-4 text-gray-300" />
+                    <Italic className="w-4 h-4 text-slate-600" />
                   </button>
-                  <div className="w-px h-5 bg-slate-600/50 mx-1"></div>
+                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Insert Link"
                   >
-                    <LinkIcon className="w-4 h-4 text-gray-300" />
+                    <LinkIcon className="w-4 h-4 text-slate-600" />
                   </button>
-                  <div className="w-px h-5 bg-slate-600/50 mx-1"></div>
+                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Left"
                   >
-                    <AlignLeft className="w-4 h-4 text-gray-300" />
+                    <AlignLeft className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Center"
                   >
-                    <AlignCenter className="w-4 h-4 text-gray-300" />
+                    <AlignCenter className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Right"
                   >
-                    <AlignRight className="w-4 h-4 text-gray-300" />
+                    <AlignRight className="w-4 h-4 text-slate-600" />
                   </button>
-                  <div className="w-px h-5 bg-slate-600/50 mx-1"></div>
+                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Flag"
                   >
-                    <Flag className="w-4 h-4 text-gray-300" />
+                    <Flag className="w-4 h-4 text-slate-600" />
                   </button>
-                  <div className="w-px h-5 bg-slate-600/50 mx-1"></div>
+                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Bullet List"
                   >
-                    <List className="w-4 h-4 text-gray-300" />
+                    <List className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
-                    className="p-1.5 hover:bg-slate-700/50 rounded transition-colors"
+                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Numbered List"
                   >
-                    <ListOrdered className="w-4 h-4 text-gray-300" />
+                    <ListOrdered className="w-4 h-4 text-slate-600" />
                   </button>
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-3 flex-shrink-0 p-3 border-t border-slate-700/50">
+            <div className="flex items-center gap-3 flex-shrink-0 p-3 border-t border-slate-200/70">
               <SendModes
                 onSendModeChange={handleSendModeChange}
                 defaultMode={sendMode}

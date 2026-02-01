@@ -41,60 +41,50 @@ export default function CampaignDetail() {
   )
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 relative">
-      <div className="absolute inset-0 opacity-30 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(2px 2px at 20% 20%, rgba(255,255,255,0.35), transparent),
-              radial-gradient(2px 2px at 70% 60%, rgba(255,255,255,0.35), transparent)`,
-            backgroundSize: '200% 200%',
-          }}
-        />
-      </div>
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
 
       <div className="relative z-10 p-6 max-w-5xl mx-auto space-y-4">
-        <div className="flex items-center justify-between text-sm text-gray-200">
+        <div className="flex items-center justify-between text-sm text-slate-600">
           <span>View Campaign</span>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 rounded-lg border border-slate-700/60 text-xs">
+            <button className="px-3 py-1.5 rounded-lg border border-slate-200/70 text-xs bg-white/70 text-slate-700">
               Pause Campaign
             </button>
-            <button className="w-8 h-8 rounded-lg border border-slate-700/60 flex items-center justify-center">
-              <MoreVertical className="w-4 h-4 text-gray-300" />
+            <button className="w-8 h-8 rounded-lg border border-slate-200/70 flex items-center justify-center bg-white/70">
+              <MoreVertical className="w-4 h-4 text-slate-500" />
             </button>
           </div>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-5 space-y-4">
+        <div className="glass-card border border-slate-200/70 rounded-2xl p-5 space-y-4">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-white">
+              <h1 className="text-lg font-semibold text-slate-900">
                 {id === 'campaign-1' ? 'Q1 SaaS Founders • Outreach' : 'Campaign'}
               </h1>
               <div className="flex items-center gap-2 mt-2">
-                <span className="inline-flex items-center gap-2 text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-400/40 text-emerald-300">
+                <span className="inline-flex items-center gap-2 text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-300/60 text-emerald-700">
                   Running
                 </span>
-                <span className="text-[11px] text-gray-400">1 automated modes</span>
+                <span className="text-[11px] text-slate-500">1 automated modes</span>
               </div>
             </div>
-            <button className="px-3 py-1.5 rounded-lg border border-slate-700/60 text-xs text-gray-200 flex items-center gap-2">
+            <button className="px-3 py-1.5 rounded-lg border border-slate-200/70 text-xs text-slate-700 bg-white/70 flex items-center gap-2">
               Offer prospects
               <ChevronDown className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-gray-200">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-slate-600">
             {[
               { label: 'Prospects Active', value: '105' },
               { label: 'Replies', value: '24' },
               { label: 'Open Rate', value: '58%' },
               { label: 'Avg Reply time', value: '3.4h' },
             ].map((metric) => (
-              <div key={metric.label} className="rounded-xl bg-slate-900/60 border border-slate-700/50 p-3">
-                <p className="text-[11px] text-gray-400">{metric.label}</p>
-                <p className="text-lg font-semibold text-white">{metric.value}</p>
+              <div key={metric.label} className="rounded-xl bg-white/70 border border-slate-200/70 p-3">
+                <p className="text-[11px] text-slate-500">{metric.label}</p>
+                <p className="text-lg font-semibold text-slate-900">{metric.value}</p>
               </div>
             ))}
           </div>
@@ -108,8 +98,8 @@ export default function CampaignDetail() {
               className={`px-3 py-1 rounded-full border ${
                 (tab === 'Activity Feed' && activeTab === 'activity') ||
                 (tab === 'AI Insights' && activeTab === 'insights')
-                  ? 'bg-indigo-600/40 border-indigo-400/40 text-white'
-                  : 'border-slate-700/60 text-gray-400'
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'border-slate-200/70 text-slate-500 bg-white/70'
               }`}
             >
               {tab}
@@ -117,7 +107,7 @@ export default function CampaignDetail() {
           ))}
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-4">
+        <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
           <div className="flex items-center gap-3">
             {STEPS.map((step, index) => (
               <button
@@ -125,16 +115,16 @@ export default function CampaignDetail() {
                 onClick={() => setSelectedStep(step.id)}
                 className={`flex-1 rounded-xl border p-3 text-left transition-colors ${
                   selectedStep === step.id || (selectedStep === null && step.id === 1)
-                    ? 'border-indigo-400/50 bg-indigo-700/20'
-                    : 'border-slate-700/60 bg-slate-900/40'
+                    ? 'border-indigo-300/70 bg-indigo-500/10'
+                    : 'border-slate-200/70 bg-white/70'
                 }`}
               >
-                <p className="text-xs text-gray-300">{step.label}</p>
-                <div className="flex items-center gap-2 mt-2 text-sm text-white">
+                <p className="text-xs text-slate-600">{step.label}</p>
+                <div className="flex items-center gap-2 mt-2 text-sm text-slate-900">
                   <span>{step.count}</span>
-                  <span className="text-xs text-gray-400">prospects</span>
+                  <span className="text-xs text-slate-500">prospects</span>
                 </div>
-                <div className="mt-2 text-[11px] text-gray-400">
+                <div className="mt-2 text-[11px] text-slate-500">
                   Reply rate {step.replyRate}
                   {step.openRate ? ` · Open rate ${step.openRate}` : ''}
                 </div>
@@ -152,8 +142,8 @@ export default function CampaignDetail() {
               key={tab}
               className={`px-3 py-1 rounded-full border ${
                 tab === 'Activity Feed'
-                  ? 'bg-indigo-600/40 border-indigo-400/40 text-white'
-                  : 'border-slate-700/60 text-gray-400'
+                  ? 'bg-indigo-600 border-indigo-600 text-white'
+                  : 'border-slate-200/70 text-slate-500 bg-white/70'
               }`}
             >
               {tab}
@@ -162,36 +152,36 @@ export default function CampaignDetail() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
-          <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-4">
+          <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
             <div className="space-y-3">
               {filteredActivity.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 text-xs text-gray-300">
-                  <div className="w-8 h-8 rounded-full bg-indigo-700/40 flex items-center justify-center text-[10px] text-white">
+                <div key={item.id} className="flex items-center gap-3 text-xs text-slate-600">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/15 flex items-center justify-center text-[10px] text-indigo-700 border border-indigo-200/70">
                     {item.initials}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-white">{item.name}</p>
-                    <p className="text-[11px] text-gray-400">{item.detail}</p>
+                    <p className="text-sm text-slate-900">{item.name}</p>
+                    <p className="text-[11px] text-slate-500">{item.detail}</p>
                   </div>
-                  <span className="text-[11px] text-gray-500">{item.time}</span>
+                  <span className="text-[11px] text-slate-400">{item.time}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-4">
-              <h2 className="text-sm font-semibold text-white mb-3">What Needs Attention</h2>
-              <div className="space-y-2 text-xs text-gray-300">
+            <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
+              <h2 className="text-sm font-semibold text-slate-900 mb-3">What Needs Attention</h2>
+              <div className="space-y-2 text-xs text-slate-600">
                 <button
                   onClick={() => navigate(ROUTES.COMPOSE)}
-                  className="w-full text-left flex items-center justify-between rounded-lg border border-slate-700/60 px-3 py-2"
+                  className="w-full text-left flex items-center justify-between rounded-lg border border-slate-200/70 px-3 py-2 bg-white/70"
                 >
                   5 Leads waiting for approval
                 </button>
                 <button
                   onClick={() => navigate(ROUTES.COMPOSE)}
-                  className="w-full text-left flex items-center justify-between rounded-lg border border-slate-700/60 px-3 py-2"
+                  className="w-full text-left flex items-center justify-between rounded-lg border border-slate-200/70 px-3 py-2 bg-white/70"
                 >
                   2 Send follow-ups
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
@@ -199,19 +189,19 @@ export default function CampaignDetail() {
               </div>
             </div>
 
-            <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-4">
+            <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-white">Prospects</h2>
-                <div className="flex items-center gap-2 text-gray-400">
+                <h2 className="text-sm font-semibold text-slate-900">Prospects</h2>
+                <div className="flex items-center gap-2 text-slate-400">
                   <ChevronDown className="w-4 h-4" />
                   <MoreVertical className="w-4 h-4" />
                 </div>
               </div>
-              <div className="space-y-2 text-xs text-gray-300">
+              <div className="space-y-2 text-xs text-slate-600">
                 {PROSPECTS.map((prospect) => (
                   <div key={prospect.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-indigo-700/40 text-[10px] text-white flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/15 text-[10px] text-indigo-700 flex items-center justify-center border border-indigo-200/70">
                         {prospect.name
                           .split(' ')
                           .map((part) => part[0])
@@ -219,7 +209,7 @@ export default function CampaignDetail() {
                       </div>
                       <span>{prospect.name}</span>
                     </div>
-                    <span className="text-gray-400">{prospect.rate}</span>
+                    <span className="text-slate-500">{prospect.rate}</span>
                   </div>
                 ))}
               </div>
