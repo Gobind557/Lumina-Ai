@@ -34,6 +34,7 @@ export default function Login() {
     <div className="auth-page relative flex items-center justify-center p-6">
       <div className="auth-orb auth-orb-purple" />
       <div className="auth-orb auth-orb-blue" />
+      <div className="auth-rings" />
 
       <div className="relative w-full max-w-md">
         <div className="auth-card px-8 py-10">
@@ -141,7 +142,13 @@ export default function Login() {
           <div className="mt-4 text-center text-xs text-slate-400">or</div>
 
           <div className="mt-4 space-y-2">
-            <button className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/api/auth/google'
+              }}
+              className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors"
+            >
               <svg
                 width="16"
                 height="16"
@@ -167,7 +174,13 @@ export default function Login() {
               </svg>
               Sign in with Google
             </button>
-            <button className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/api/auth/linkedin'
+              }}
+              className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors"
+            >
               <svg
                 width="16"
                 height="16"

@@ -52,3 +52,22 @@ export const generateToken = (user: { id: string; email: string; role: string })
     { expiresIn: env.JWT_EXPIRES_IN }
   );
 };
+
+export const findOrCreateOAuthUser = async (payload: {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+}) => {
+  const existing = await prisma.user.findUnique({ where: { email: payload.email } });
+  if (existing) return existing;
+
+  return prisma.user.create({
+    data: {
+      email: payload.email,
+      passwordHash: null,
+      firstName: payload.firstName ?? null,
+      lastName: payload.lastName ?? null,
+      role: "user",
+    },
+  });
+};

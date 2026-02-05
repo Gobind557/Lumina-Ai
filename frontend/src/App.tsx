@@ -6,6 +6,7 @@ import { Campaigns, CreateCampaign, CampaignDetail } from './features/campaigns'
 import { Templates, CreateTemplate, EditTemplate } from './features/templates'
 import { ROUTES } from './shared/constants'
 import { Login, Signup } from './features/auth'
+import AuthCallback from './features/auth/pages/AuthCallback'
 
 const AppShell = () => (
   <Layout>
@@ -19,6 +20,7 @@ function App() {
       <Routes>
         <Route path={ROUTES.LOGIN} element={<Login />} />
         <Route path={ROUTES.SIGNUP} element={<Signup />} />
+        <Route path={ROUTES.AUTH_CALLBACK} element={<AuthCallback />} />
         <Route element={<AppShell />}>
           <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
           <Route path={ROUTES.COMPOSE} element={<EmailComposer />} />

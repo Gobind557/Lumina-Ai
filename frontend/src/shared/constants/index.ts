@@ -3,6 +3,7 @@
 export const ROUTES = {
   LOGIN: '/login',
   SIGNUP: '/signup',
+  AUTH_CALLBACK: '/auth/callback',
   DASHBOARD: '/',
   CAMPAIGNS: '/campaigns',
   CAMPAIGNS_NEW: '/campaigns/new',
