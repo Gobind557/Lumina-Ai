@@ -39,3 +39,5 @@ export const debounce = <T extends (...args: any[]) => any>(
 export const generateId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 }
+
+export { apiRequest } from './api'

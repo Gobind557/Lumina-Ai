@@ -1,6 +1,8 @@
 // Application constants
 
 export const ROUTES = {
+  LOGIN: '/login',
+  SIGNUP: '/signup',
   DASHBOARD: '/',
   CAMPAIGNS: '/campaigns',
   CAMPAIGNS_NEW: '/campaigns/new',

@@ -100,6 +100,56 @@
   .bg-surface {
     @apply bg-white;
   }
+
+  .auth-page {
+    min-height: 100vh;
+    background:
+      url("/noise.svg"),
+      radial-gradient(
+        600px circle at 20% 20%,
+        rgba(124, 92, 255, 0.12),
+        transparent 60%
+      ),
+      radial-gradient(
+        500px circle at 80% 60%,
+        rgba(37, 99, 235, 0.1),
+        transparent 65%
+      ),
+      linear-gradient(180deg, #f8faff 0%, #f2f5ff 60%, #eef2ff 100%);
+    background-blend-mode: overlay, normal, normal, normal;
+    background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+    background-size: 40px 40px, auto, auto, auto;
+  }
+
+  .auth-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(14px);
+    border-radius: 20px;
+    box-shadow: 0 40px 80px rgba(15, 23, 42, 0.12);
+  }
+
+  .auth-orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(120px);
+    opacity: 0.25;
+  }
+
+  .auth-orb-purple {
+    width: 420px;
+    height: 420px;
+    background: #7c5cff;
+    top: -120px;
+    left: -120px;
+  }
+
+  .auth-orb-blue {
+    width: 360px;
+    height: 360px;
+    background: #2563eb;
+    bottom: -100px;
+    right: -100px;
+  }
 }
 
 /* Custom scrollbar */

@@ -21,6 +21,8 @@ import {
   type SendMode,
 } from "../components";
 import { useEmailDraft } from "../hooks";
+import { apiRequest } from "@/shared/utils";
+import { API_ENDPOINTS } from "@/shared/constants";
 import { MOCK_TEMPLATES } from "../../templates/data/mockTemplates";
 import type { EmailDraft } from "../../../shared/types";
 
@@ -40,7 +42,8 @@ export default function EmailComposer() {
       updatedAt: now,
     };
   }, [templateId]);
-  const { draft, updateSubject, updateContent } = useEmailDraft(initialDraft);
+  const { draft, updateSubject, updateContent, saveDraftNow } =
+    useEmailDraft(initialDraft);
   const [aiState, setAIState] = useState<AIState>("idle");
   const [aiConfidence, setAIConfidence] = useState<number>(0.87);
   const [sendMode, setSendMode] = useState<SendMode>("send_at_best_time");
@@ -57,41 +60,142 @@ export default function EmailComposer() {
     },
   ];
 
-  const handlePersonalize = () => {
-    setAIState("thinking");
-    setTimeout(() => {
+  const handlePersonalize = async () => {
+    try {
+      setAIState("thinking");
+      const draftId = await saveDraftNow();
+      const prospectId =
+        draft.prospectId ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("default_prospect_id")
+          : null);
+      if (!draftId || !prospectId) return;
+      const response = await apiRequest<{
+        suggestion: { subject?: string; body?: string };
+        confidence: number;
+      }>(API_ENDPOINTS.AI_PERSONALIZE, {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          prospect_id: prospectId,
+          tone,
+        }),
+      });
+      if (response.suggestion?.subject) {
+        updateSubject(response.suggestion.subject);
+      }
+      if (response.suggestion?.body) {
+        updateContent(response.suggestion.body);
+      }
+      setAIConfidence(response.confidence ?? 0.87);
       setAIState("suggestion_ready");
-      setAIConfidence(0.87);
-    }, 1500);
+    } catch {
+      setAIState("idle");
+    }
   };
 
-  const handleToneChange = (newTone: "formal" | "casual") => {
+  const handleToneChange = async (newTone: "formal" | "casual") => {
     setTone(newTone);
-    setAIState("thinking");
-    setTimeout(() => {
+    try {
+      setAIState("thinking");
+      const draftId = await saveDraftNow();
+      if (!draftId) return;
+      const response = await apiRequest<{
+        suggestion: { subject?: string; body?: string };
+        confidence: number;
+      }>(API_ENDPOINTS.AI_REWRITE, {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          instruction: `Rewrite in a ${newTone} tone.`,
+        }),
+      });
+      if (response.suggestion?.subject) {
+        updateSubject(response.suggestion.subject);
+      }
+      if (response.suggestion?.body) {
+        updateContent(response.suggestion.body);
+      }
+      setAIConfidence(response.confidence ?? 0.87);
       setAIState("suggestion_ready");
-    }, 1000);
+    } catch {
+      setAIState("idle");
+    }
   };
 
-  const handleShorten = () => {
-    setAIState("thinking");
-    setTimeout(() => {
+  const handleShorten = async () => {
+    try {
+      setAIState("thinking");
+      const draftId = await saveDraftNow();
+      if (!draftId) return;
+      const response = await apiRequest<{
+        suggestion: { body?: string };
+        confidence: number;
+      }>(API_ENDPOINTS.AI_REWRITE, {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          instruction: "Make it more concise.",
+        }),
+      });
+      if (response.suggestion?.body) {
+        updateContent(response.suggestion.body);
+      }
+      setAIConfidence(response.confidence ?? 0.87);
       setAIState("suggestion_ready");
-    }, 1000);
+    } catch {
+      setAIState("idle");
+    }
   };
 
-  const handleImprove = () => {
-    setAIState("thinking");
-    setTimeout(() => {
+  const handleImprove = async () => {
+    try {
+      setAIState("thinking");
+      const draftId = await saveDraftNow();
+      if (!draftId) return;
+      const response = await apiRequest<{
+        suggestion: { body?: string };
+        confidence: number;
+      }>(API_ENDPOINTS.AI_REWRITE, {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          instruction: "Improve clarity and readability.",
+        }),
+      });
+      if (response.suggestion?.body) {
+        updateContent(response.suggestion.body);
+      }
+      setAIConfidence(response.confidence ?? 0.87);
       setAIState("suggestion_ready");
-    }, 1000);
+    } catch {
+      setAIState("idle");
+    }
   };
 
-  const handleOptimizeReply = () => {
-    setAIState("thinking");
-    setTimeout(() => {
+  const handleOptimizeReply = async () => {
+    try {
+      setAIState("thinking");
+      const draftId = await saveDraftNow();
+      if (!draftId) return;
+      const response = await apiRequest<{
+        suggestion: { body?: string };
+        confidence: number;
+      }>(API_ENDPOINTS.AI_REWRITE, {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          instruction: "Optimize for higher replies.",
+        }),
+      });
+      if (response.suggestion?.body) {
+        updateContent(response.suggestion.body);
+      }
+      setAIConfidence(response.confidence ?? 0.87);
       setAIState("suggestion_ready");
-    }, 1000);
+    } catch {
+      setAIState("idle");
+    }
   };
 
   // const handleSuggestionAccept = (_suggestionId: string) => {
