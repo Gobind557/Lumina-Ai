@@ -1,8 +1,19 @@
-import { Search, Bell, MoreVertical, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Bell, MoreVertical, ChevronDown, LogOut } from "lucide-react";
+import { ROUTES } from "../../constants";
 
 export default function Header() {
+  const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem("auth_token");
+    navigate(ROUTES.LOGIN, { replace: true });
+  };
+
   return (
-    <header className="bg-white/70 backdrop-blur-xl border-b border-slate-200/70 px-6 py-4">
+    <header className="relative z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/70 px-6 py-4">
       <div className="flex items-center justify-between gap-4">
         {/* Search Bar */}
         <div className="flex-shrink-0">
@@ -65,9 +76,28 @@ export default function Header() {
           </button>
 
           {/* Options Menu */}
-          <button className="p-2 text-slate-500 hover:text-slate-900 transition-colors">
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          <div className="relative">
+            <button
+              className="p-2 text-slate-500 hover:text-slate-900 transition-colors"
+              onClick={() => setMenuOpen((open) => !open)}
+              type="button"
+              aria-label="Open user menu"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-slate-200/70 bg-white shadow-xl shadow-slate-900/15 ring-1 ring-slate-900/5 z-50">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-50 transition-colors rounded-2xl"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

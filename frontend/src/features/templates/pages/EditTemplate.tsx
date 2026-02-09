@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ROUTES } from "../../../shared/constants";
+import { API_ENDPOINTS, ROUTES } from "../../../shared/constants";
+import { apiRequest } from "../../../shared/utils";
 import { MOCK_TEMPLATES } from "../data/mockTemplates";
 import TemplateDetailsForm from "../components/TemplateDetailsForm";
 import TemplateEditorCard from "../components/TemplateEditorCard";
 import LuminaInspirationCard from "../components/LuminaInspirationCard";
+import type { TemplateCardData } from "../components/TemplateCard";
 
 const DEFAULT_CONTENT = `Hi [First Name],
 
@@ -20,20 +22,70 @@ export default function EditTemplate() {
   const [category, setCategory] = useState("Follow-Up");
   const [tone, setTone] = useState<"normal" | "casual">("normal");
   const [content, setContent] = useState(DEFAULT_CONTENT);
+  const [isApiTemplate, setIsApiTemplate] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    const t = MOCK_TEMPLATES.find((x) => x.id === id);
-    if (t) {
-      setTitle(t.title);
-      setCategory(t.category);
-      setContent(t.description + "\n\n...");
-    } else {
-      navigate(ROUTES.TEMPLATES);
-    }
+    const loadTemplate = async () => {
+      try {
+        const response = await apiRequest<{
+          id: string;
+          title: string;
+          description: string;
+          content: string;
+          category: string;
+          tone?: string | null;
+        }>(`${API_ENDPOINTS.TEMPLATES}/${id}`);
+
+        setIsApiTemplate(true);
+        setTitle(response.title);
+        setCategory(response.category);
+        setContent(response.content);
+        if (response.tone === "normal" || response.tone === "casual") {
+          setTone(response.tone);
+        }
+      } catch (error) {
+        const fallback = MOCK_TEMPLATES.find((x) => x.id === id);
+        const t: TemplateCardData | undefined = fallback;
+        if (!t) {
+          navigate(ROUTES.TEMPLATES);
+          return;
+        }
+        setIsApiTemplate(false);
+        setTitle(t.title);
+        setCategory(t.category);
+        setContent(t.content ?? t.description);
+      }
+    };
+
+    loadTemplate();
   }, [id, navigate]);
 
-  const handleSaveTemplate = () => {
+  const handleSaveTemplate = async () => {
+    if (id && isApiTemplate) {
+      const trimmedTitle = title.trim();
+      const trimmedContent = content.trim();
+      const description =
+        trimmedContent.length > 0
+          ? `${trimmedContent.replace(/\s+/g, " ").slice(0, 140)}${
+              trimmedContent.length > 140 ? "..." : ""
+            }`
+          : "New template";
+      try {
+        await apiRequest(`${API_ENDPOINTS.TEMPLATES}/${id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            title: trimmedTitle.length > 0 ? trimmedTitle : "Untitled Template",
+            description,
+            content: trimmedContent.length > 0 ? trimmedContent : DEFAULT_CONTENT,
+            category,
+            tone,
+          }),
+        });
+      } catch (error) {
+        console.error("Failed to update template", error);
+      }
+    }
     navigate(ROUTES.TEMPLATES);
   };
 

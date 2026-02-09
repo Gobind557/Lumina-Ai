@@ -31,12 +31,12 @@ export default function TemplateEditorCard({
   const isSaving = saveStatus === "Saving...";
 
   return (
-    <div className="glass-card border border-slate-200/70 rounded-xl p-6 flex flex-col relative overflow-hidden">
+    <div className="glass-card border border-slate-200/70 rounded-xl p-6 pb-8 flex flex-col relative overflow-hidden">
       <div className="relative z-10 flex flex-col flex-1">
-      <h3 className="text-lg font-semibold text-slate-900 mb-1">Template Editor</h3>
-      <p className="text-sm text-slate-500 mb-6">
-        Craft your email template below. Use the AI tools to help you optimize the content.
-      </p>
+        <h3 className="text-lg font-semibold text-slate-900 mb-1">Template Editor</h3>
+        <p className="text-sm text-slate-500 mb-6">
+          Craft your email template below. Use the AI tools to help you optimize the content.
+        </p>
 
       <div className="flex items-center justify-between mb-4 px-3 py-2 bg-white/70 rounded-xl border border-slate-200/70">
         <div className="flex flex-col gap-0.5">
@@ -87,7 +87,7 @@ export default function TemplateEditorCard({
             setTimeout(() => setSaveStatus("All changes saved"), 800);
           }}
           placeholder={DEFAULT_PLACEHOLDER}
-          className="w-full min-h-[240px] p-4 bg-transparent text-slate-900 placeholder-slate-400 resize-none focus:outline-none text-sm leading-relaxed"
+          className="w-full min-h-[200px] md:min-h-[240px] p-4 bg-transparent text-slate-900 placeholder-slate-400 resize-none focus:outline-none text-sm leading-relaxed"
         />
         <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200/70 text-xs text-slate-500">
           <span className="flex items-center gap-2">
@@ -102,7 +102,7 @@ export default function TemplateEditorCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={onImproveClarity}
           className="flex items-center gap-2 px-3 py-2 bg-indigo-500/15 hover:bg-indigo-500/20 border border-indigo-200/70 rounded-lg text-sm text-indigo-700 transition-colors"
@@ -128,7 +128,7 @@ export default function TemplateEditorCard({
 
       <button
         onClick={onCreateTemplate}
-        className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 rounded-xl text-white font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 rounded-xl text-white font-medium shadow-lg shadow-indigo-500/20 transition-colors"
       >
         Create Template
       </button>

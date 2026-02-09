@@ -31,6 +31,7 @@ export const API_ENDPOINTS = {
   DRAFTS: '/api/emails/draft',
   EMAILS: '/api/emails',
   PROSPECTS: '/api/prospects',
+  TEMPLATES: '/api/templates',
   AI_PERSONALIZE: '/api/ai/personalize',
   AI_REWRITE: '/api/ai/rewrite',
   AI_SCORE: '/api/ai/score',

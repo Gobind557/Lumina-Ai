@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ROUTES } from "../../../shared/constants";
+import { API_ENDPOINTS, ROUTES } from "../../../shared/constants";
+import { apiRequest } from "../../../shared/utils";
 import TemplateDetailsForm from "../components/TemplateDetailsForm";
 import TemplateEditorCard from "../components/TemplateEditorCard";
 import LuminaInspirationCard from "../components/LuminaInspirationCard";
@@ -19,13 +20,35 @@ export default function CreateTemplate() {
   const [tone, setTone] = useState<"normal" | "casual">("normal");
   const [content, setContent] = useState(DEFAULT_CONTENT);
 
-  const handleCreateTemplate = () => {
-    // In a real app: persist template then redirect
-    navigate(ROUTES.TEMPLATES);
+  const handleCreateTemplate = async () => {
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+    const description =
+      trimmedContent.length > 0
+        ? `${trimmedContent.replace(/\s+/g, " ").slice(0, 140)}${
+            trimmedContent.length > 140 ? "..." : ""
+          }`
+        : "New template";
+
+    try {
+      await apiRequest(API_ENDPOINTS.TEMPLATES, {
+        method: "POST",
+        body: JSON.stringify({
+          title: trimmedTitle.length > 0 ? trimmedTitle : "Untitled Template",
+          description,
+          content: trimmedContent.length > 0 ? trimmedContent : DEFAULT_CONTENT,
+          category,
+          tone,
+        }),
+      });
+      navigate(ROUTES.TEMPLATES);
+    } catch (error) {
+      console.error("Failed to create template", error);
+    }
   };
 
   return (
-    <div className="h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative">
+    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative">
       <div className="absolute inset-0 opacity-40 pointer-events-none">
         <div
           className="absolute inset-0"
@@ -46,7 +69,7 @@ export default function CreateTemplate() {
         />
       </div>
 
-      <div className="relative z-10 p-6 max-w-7xl mx-auto">
+      <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-white tracking-tight">Create New Template</h1>
           <p className="text-sm text-gray-400 mt-0.5">
@@ -54,7 +77,7 @@ export default function CreateTemplate() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-7 items-start">
           <div className="lg:col-span-4">
             <TemplateDetailsForm
               title={title}

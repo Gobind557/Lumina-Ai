@@ -40,6 +40,16 @@
     height: 100%;
     overflow: hidden;
   }
+
+  @media (max-width: 1024px) {
+    html,
+    body,
+    #root {
+      height: auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+  }
 }
 
 @layer utilities {

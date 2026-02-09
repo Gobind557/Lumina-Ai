@@ -1,21 +1,71 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, Pencil } from "lucide-react";
-import { ROUTES } from "../../../shared/constants";
+import { API_ENDPOINTS, ROUTES } from "../../../shared/constants";
+import { apiRequest } from "../../../shared/utils";
 import TemplateCard from "../components/TemplateCard";
 import { MOCK_TEMPLATES, TEMPLATE_CATEGORIES } from "../data/mockTemplates";
+import type { TemplateCardData, TemplateCategory } from "../components/TemplateCard";
 
 type CategoryFilter = (typeof TEMPLATE_CATEGORIES)[number];
 
 export default function Templates() {
   const [category, setCategory] = useState<CategoryFilter>("All Templates");
   const [myTemplatesFilter, setMyTemplatesFilter] = useState("My Templates");
+  const [storedTemplates, setStoredTemplates] = useState<TemplateCardData[]>([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadTemplates = async () => {
+      try {
+        const response = await apiRequest<{
+          templates: {
+            id: string;
+            title: string;
+            description: string;
+            content: string;
+            category: string;
+            tone?: string | null;
+            used_count: number;
+            open_rate?: number | null;
+            reply_rate?: number | null;
+            is_favorite: boolean;
+            created_at: string;
+            updated_at: string;
+          }[];
+        }>(`${API_ENDPOINTS.TEMPLATES}?limit=200`);
+
+        const mapped = response.templates.map((template) => ({
+          id: template.id,
+          title: template.title,
+          description: template.description,
+          content: template.content,
+          category: normalizeCategory(template.category),
+          usedCount: template.used_count ?? 0,
+          modifiedAgo: formatRelativeTime(template.updated_at),
+          openRate: template.open_rate ?? undefined,
+          replyRate: template.reply_rate ?? undefined,
+          isFavorite: template.is_favorite,
+          isRecent: isRecentUpdate(template.updated_at),
+        }));
+        setStoredTemplates(mapped);
+      } catch (error) {
+        console.error("Failed to load templates", error);
+      }
+    };
+
+    loadTemplates();
+  }, []);
+
+  const allTemplates = useMemo(
+    () => [...storedTemplates, ...MOCK_TEMPLATES],
+    [storedTemplates]
+  );
 
   const filtered =
     category === "All Templates"
-      ? MOCK_TEMPLATES
-      : MOCK_TEMPLATES.filter((t) => t.category === category);
+      ? allTemplates
+      : allTemplates.filter((t) => t.category === category);
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
@@ -75,7 +125,13 @@ export default function Templates() {
         </div>
 
         <div className="mt-10 pt-2 text-center">
-          <button className="text-sm text-indigo-600 hover:text-indigo-500 transition-colors py-1">
+          <button
+            onClick={() => {
+              setCategory("All Templates");
+              setMyTemplatesFilter("All");
+            }}
+            className="text-sm text-indigo-600 hover:text-indigo-500 transition-colors py-1"
+          >
             View all templates
           </button>
         </div>
@@ -83,3 +139,36 @@ export default function Templates() {
     </div>
   );
 }
+
+const normalizeCategory = (category: string): TemplateCategory => {
+  const known: TemplateCategory[] = [
+    "Follow-Up",
+    "Cold Outreach",
+    "Announcement",
+    "LinkedIn Connection",
+    "Humor",
+  ];
+  return (known.includes(category as TemplateCategory)
+    ? category
+    : "Follow-Up") as TemplateCategory;
+};
+
+const formatRelativeTime = (dateInput: string) => {
+  const updatedAt = new Date(dateInput);
+  const diffMs = Date.now() - updatedAt.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  if (diffMinutes < 1) return "just now";
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `${diffWeeks}w ago`;
+};
+
+const isRecentUpdate = (dateInput: string) => {
+  const updatedAt = new Date(dateInput);
+  const diffMs = Date.now() - updatedAt.getTime();
+  return diffMs < 1000 * 60 * 60 * 24 * 3;
+};
