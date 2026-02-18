@@ -38,7 +38,7 @@ export default function EmailPerformanceChart() {
   }
 
   // Create smooth curve path using cubic Bézier
-  const createSmoothPath = (data: number[], color: string) => {
+  const createSmoothPath = (data: number[], _color: string) => {
     if (data.length === 0) return ''
     
     const points = data.map((value, i) => ({

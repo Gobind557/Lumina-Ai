@@ -24,7 +24,7 @@ export default function LiveConversationTimeline() {
   ];
 
   // Custom tooltip component
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white/90 backdrop-blur-xl border border-slate-200/70 rounded-lg p-3 shadow-xl min-w-[200px]">

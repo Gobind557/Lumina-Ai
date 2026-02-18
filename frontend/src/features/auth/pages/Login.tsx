@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, Eye } from 'lucide-react'
 import { apiRequest } from '@/shared/utils'
-import { API_ENDPOINTS, ROUTES } from '@/shared/constants'
+import { ROUTES } from '@/shared/constants'
 
 export default function Login() {
   const navigate = useNavigate()

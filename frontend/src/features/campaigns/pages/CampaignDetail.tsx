@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, MoreVertical } from 'lucide-react'
+import { ChevronDown, MoreVertical } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 
@@ -31,7 +31,7 @@ const PROSPECTS = [
 export default function CampaignDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [status, setStatus] = useState<CampaignStatus>('Running')
+  const [_status, _setStatus] = useState<CampaignStatus>('Running')
   const [selectedStep, setSelectedStep] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'activity' | 'insights'>('activity')
 

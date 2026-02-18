@@ -1,4 +1,4 @@
-import type { TemplateCardData } from "../components/TemplateCard";
+import type { TemplateCardData } from "../types";
 
 export const MOCK_TEMPLATES: TemplateCardData[] = [
   {

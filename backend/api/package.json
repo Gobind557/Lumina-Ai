@@ -8,7 +8,9 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "worker:email": "ts-node-dev --respawn --transpile-only src/workers/email.worker.ts",
+    "worker:email": "ts-node-dev --respawn --transpile-only src/modules/email/email.worker.ts",
+    "consumer:analytics": "ts-node-dev --respawn --transpile-only src/modules/analytics/analytics.consumer.ts",
+    "consumer:campaign": "ts-node-dev --respawn --transpile-only src/modules/campaign/campaign.consumer.ts",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest"
   },
@@ -19,6 +21,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "nodemailer": "^6.9.15",

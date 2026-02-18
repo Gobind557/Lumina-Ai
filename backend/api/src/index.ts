@@ -1,7 +1,4 @@
-import { env } from "./config/env";
-import { app } from "./app";
+import "./shared/types/express.d";
+import { startServer } from "./app/server";
 
-app.listen(env.PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`API listening on :${env.PORT}`);
-});
+startServer();

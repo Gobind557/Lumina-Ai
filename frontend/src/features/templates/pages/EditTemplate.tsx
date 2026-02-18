@@ -6,7 +6,7 @@ import { MOCK_TEMPLATES } from "../data/mockTemplates";
 import TemplateDetailsForm from "../components/TemplateDetailsForm";
 import TemplateEditorCard from "../components/TemplateEditorCard";
 import LuminaInspirationCard from "../components/LuminaInspirationCard";
-import type { TemplateCardData } from "../components/TemplateCard";
+import type { TemplateCardData } from "../types";
 
 const DEFAULT_CONTENT = `Hi [First Name],
 

@@ -2,28 +2,7 @@ import { Star, FileText, MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../../shared/constants";
-
-export type TemplateCategory =
-  | "Follow-Up"
-  | "Cold Outreach"
-  | "Announcement"
-  | "LinkedIn Connection"
-  | "Humor";
-
-export interface TemplateCardData {
-  id: string;
-  title: string;
-  description: string;
-  content?: string;
-  category: TemplateCategory;
-  usedCount: number;
-  modifiedAgo: string;
-  openRate?: number;
-  replyRate?: number;
-  isFavorite: boolean;
-  isRecent?: boolean;
-  tags?: string[];
-}
+import type { TemplateCardData, TemplateCategory } from "../types";
 
 const categoryStyles: Record<TemplateCategory, string> = {
   "Follow-Up": "bg-emerald-500/15 text-emerald-700 border-emerald-300/60",

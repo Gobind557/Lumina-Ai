@@ -5,7 +5,7 @@ import { API_ENDPOINTS, ROUTES } from "../../../shared/constants";
 import { apiRequest } from "../../../shared/utils";
 import TemplateCard from "../components/TemplateCard";
 import { MOCK_TEMPLATES, TEMPLATE_CATEGORIES } from "../data/mockTemplates";
-import type { TemplateCardData, TemplateCategory } from "../components/TemplateCard";
+import type { TemplateCardData, TemplateCategory } from "../types";
 
 type CategoryFilter = (typeof TEMPLATE_CATEGORIES)[number];
 

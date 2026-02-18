@@ -1,4 +1,4 @@
-import { ExternalLink, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 
 interface BestTimeActivity {
   name: string;

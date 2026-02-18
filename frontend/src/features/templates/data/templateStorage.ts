@@ -1,4 +1,4 @@
-import type { TemplateCardData } from "../components/TemplateCard";
+import type { TemplateCardData } from "../types";
 
 const STORAGE_KEY = "userTemplates";
 
