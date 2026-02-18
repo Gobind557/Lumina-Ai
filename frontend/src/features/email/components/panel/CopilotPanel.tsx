@@ -3,11 +3,13 @@ import ProspectInsights from "../insights/ProspectInsights";
 import SendReadiness from "../insights/SendReadiness";
 import SendModesPanel from "../send/SendModesPanel";
 import ToneCard from "../ui/ToneCard";
-import type { EmailDraft } from "@/shared/types";
+import type { EmailDraft, Prospect } from "@/shared/types";
 import type { SendMode } from "../send/SendModes";
 
 interface CopilotPanelProps {
   draft: EmailDraft;
+  prospect?: Prospect;
+  isNewRecipient?: boolean;
   tone?: "formal" | "casual";
   sendMode?: SendMode;
   onToneChange?: (tone: "formal" | "casual") => void;
@@ -16,6 +18,8 @@ interface CopilotPanelProps {
 
 export default function CopilotPanel({
   draft,
+  prospect,
+  isNewRecipient,
   tone = "casual",
   sendMode = "send_at_best_time",
   onToneChange,
@@ -41,7 +45,7 @@ export default function CopilotPanel({
       </div>
 
       <div className="flex-1 overflow-hidden min-h-0 flex flex-col space-y-4">
-        <ProspectInsights />
+        <ProspectInsights prospect={prospect} isNewRecipient={isNewRecipient} />
         <SendReadiness replyProbability={replyProbability} spamRisk="low" />
         <ToneCard
           tone={tone}

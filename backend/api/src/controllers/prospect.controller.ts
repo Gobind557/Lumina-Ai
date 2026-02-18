@@ -10,6 +10,7 @@ import {
 
 const listSchema = z.object({
   workspace_id: z.string().uuid().optional(),
+  email: z.string().email().optional(),
   search: z.string().optional(),
   limit: z.coerce.number().default(50),
   offset: z.coerce.number().default(0),
@@ -40,6 +41,7 @@ export const list = async (req: Request, res: Response, next: NextFunction) => {
     const query = listSchema.parse(req.query);
     const result = await listProspects({
       workspaceId: query.workspace_id,
+      email: query.email,
       search: query.search,
       limit: query.limit,
       offset: query.offset,

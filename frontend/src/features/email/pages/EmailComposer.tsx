@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Bold,
@@ -10,6 +10,10 @@ import {
   Flag,
   List,
   ListOrdered,
+  CheckCircle2,
+  AlertTriangle,
+  Clock3,
+  Loader2,
 } from "lucide-react";
 import {
   CopilotPanel,
@@ -24,7 +28,15 @@ import { useEmailDraft } from "../hooks";
 import { apiRequest } from "@/shared/utils";
 import { API_ENDPOINTS } from "@/shared/constants";
 import { MOCK_TEMPLATES } from "../../templates/data/mockTemplates";
-import type { EmailDraft } from "../../../shared/types";
+import type { EmailDraft, Prospect } from "../../../shared/types";
+
+type ProspectPayload = {
+  id: string;
+  email: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  company?: string | null;
+};
 
 export default function EmailComposer() {
   const [searchParams] = useSearchParams();
@@ -42,12 +54,30 @@ export default function EmailComposer() {
       updatedAt: now,
     };
   }, [templateId]);
-  const { draft, updateSubject, updateContent, saveDraftNow } =
+  const { draft, updateSubject, updateContent, updateProspectId, saveDraftNow } =
     useEmailDraft(initialDraft);
   const [aiState, setAIState] = useState<AIState>("idle");
   const [aiConfidence, setAIConfidence] = useState<number>(0.87);
   const [sendMode, setSendMode] = useState<SendMode>("send_at_best_time");
   const [tone, setTone] = useState<"formal" | "casual">("casual");
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientCompany, setRecipientCompany] = useState("");
+  const [showRecipientDetails, setShowRecipientDetails] = useState(false);
+  const [prospectStatus, setProspectStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [prospectError, setProspectError] = useState<string | null>(null);
+  const [prospect, setProspect] = useState<ProspectPayload | null>(null);
+  const [insightsProspect, setInsightsProspect] = useState<Prospect | undefined>(
+    undefined
+  );
+  const [sendStatus, setSendStatus] = useState<
+    "idle" | "sending" | "queued" | "sent" | "failed"
+  >("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sentEmailId, setSentEmailId] = useState<string | null>(null);
+  const [isNewRecipient, setIsNewRecipient] = useState(false);
 
   // Mock AI suggestions for demo
   const suggestions = [
@@ -59,6 +89,174 @@ export default function EmailComposer() {
       confidence: 0.87,
     },
   ];
+
+  const ensureProspect = async () => {
+    const email = recipientEmail.trim().toLowerCase();
+    if (!email) {
+      setProspectError("Enter a recipient email.");
+      setProspectStatus("error");
+      return null;
+    }
+
+    setProspectStatus("loading");
+    setProspectError(null);
+    try {
+      const response = await apiRequest<{ prospects: ProspectPayload[] }>(
+        `${API_ENDPOINTS.PROSPECTS}?email=${encodeURIComponent(email)}`
+      );
+      if (response.prospects.length > 0) {
+        const found = response.prospects[0];
+        setIsNewRecipient(false);
+        setProspect(found);
+        updateProspectId(found.id);
+        localStorage.setItem("default_prospect_id", found.id);
+        setRecipientName(
+          [found.first_name, found.last_name].filter(Boolean).join(" ")
+        );
+        setRecipientCompany(found.company ?? "");
+        setInsightsProspect({
+          id: found.id,
+          name: [found.first_name, found.last_name].filter(Boolean).join(" ") || "Prospect",
+          email: found.email,
+          company: found.company ?? undefined,
+        });
+        setProspectStatus("ready");
+        return found.id;
+      }
+
+      const created = await apiRequest<ProspectPayload>(API_ENDPOINTS.PROSPECTS, {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          first_name: recipientName || undefined,
+          company: recipientCompany || undefined,
+        }),
+      });
+      setIsNewRecipient(true);
+      setProspect(created);
+      updateProspectId(created.id);
+      localStorage.setItem("default_prospect_id", created.id);
+      setInsightsProspect({
+        id: created.id,
+        name: recipientName || "Prospect",
+        email: created.email,
+        company: recipientCompany || undefined,
+      });
+      setProspectStatus("ready");
+      return created.id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to load prospect";
+      setProspectError(message);
+      setProspectStatus("error");
+      return null;
+    }
+  };
+
+  const getTokenEmail = () => {
+    const token = localStorage.getItem("auth_token");
+    if (!token) return "";
+    try {
+      const payload = token.split(".")[1];
+      if (!payload) return "";
+      const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+      const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="));
+      const decoded = JSON.parse(json) as { email?: string };
+      return decoded.email ?? "";
+    } catch {
+      return "";
+    }
+  };
+
+  const handleRecipientLookup = async () => {
+    await ensureProspect();
+  };
+
+  const handleSend = async () => {
+    setSendError(null);
+    setSendStatus("sending");
+    setSentEmailId(null);
+    const prospectId = await ensureProspect();
+    if (!prospectId) {
+      setSendStatus("idle");
+      return;
+    }
+
+    const draftId = await saveDraftNow(prospectId);
+    if (!draftId) {
+      setSendError("Draft not ready. Add a recipient first.");
+      setSendStatus("idle");
+      return;
+    }
+
+    const fromEmail = getTokenEmail();
+    if (!fromEmail) {
+      setSendError("Please log in again.");
+      setSendStatus("idle");
+      return;
+    }
+
+    try {
+      const response = await apiRequest<{ id: string; status: string }>(
+        `${API_ENDPOINTS.EMAILS}/send`,
+        {
+        method: "POST",
+        body: JSON.stringify({
+          draft_id: draftId,
+          idempotency_key:
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : String(Date.now()),
+          from_email: fromEmail,
+          to_email: recipientEmail.trim().toLowerCase(),
+        }),
+        }
+      );
+      setSentEmailId(response.id);
+      setSendStatus("queued");
+      setIsNewRecipient(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to send email";
+      setSendError(message);
+      setSendStatus("failed");
+    }
+  };
+
+  useEffect(() => {
+    if (!sentEmailId || (sendStatus !== "queued" && sendStatus !== "sending")) {
+      return;
+    }
+
+    let isCancelled = false;
+    const poll = async () => {
+      try {
+        const response = await apiRequest<{
+          id: string;
+          status: "PENDING_SEND" | "SENT" | "FAILED";
+        }>(`${API_ENDPOINTS.EMAILS}/${sentEmailId}`);
+        if (isCancelled) return;
+        if (response.status === "SENT") {
+          setSendStatus("sent");
+          return;
+        }
+        if (response.status === "FAILED") {
+          setSendStatus("failed");
+          setSendError("Email failed to send. Check SMTP/worker logs.");
+          return;
+        }
+        setTimeout(poll, 2000);
+      } catch {
+        if (!isCancelled) {
+          setTimeout(poll, 3000);
+        }
+      }
+    };
+
+    const timer = setTimeout(poll, 1500);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [sentEmailId, sendStatus]);
 
   const handlePersonalize = async () => {
     try {
@@ -211,6 +409,60 @@ export default function EmailComposer() {
     <div className="flex h-full overflow-hidden">
       {/* Main Composer Area */}
       <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
+        <div className="rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              To
+            </label>
+            <input
+              type="email"
+              value={recipientEmail}
+              onChange={(event) => setRecipientEmail(event.target.value)}
+              onBlur={handleRecipientLookup}
+              placeholder="james@technova.com"
+              className="flex-1 min-w-[220px] px-3 py-2 bg-white/90 border border-slate-200/70 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            />
+            <button
+              type="button"
+              onClick={() => setShowRecipientDetails((prev) => !prev)}
+              className="text-xs text-indigo-600 hover:text-indigo-500 transition-colors"
+            >
+              {showRecipientDetails ? "Hide prospect details" : "Add prospect details"}
+            </button>
+            {prospectStatus === "loading" && (
+              <span className="text-xs text-slate-500">Looking up…</span>
+            )}
+            {prospectStatus === "ready" && prospect && (
+              <span className="text-xs text-emerald-600">
+                Prospect linked: {prospect.email}
+              </span>
+            )}
+          </div>
+          {showRecipientDetails && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-3">
+              <input
+                type="text"
+                value={recipientName}
+                onChange={(event) => setRecipientName(event.target.value)}
+                placeholder="Name"
+                className="w-full px-3 py-2 bg-white/90 border border-slate-200/70 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              />
+              <input
+                type="text"
+                value={recipientCompany}
+                onChange={(event) => setRecipientCompany(event.target.value)}
+                placeholder="Company"
+                className="w-full px-3 py-2 bg-white/90 border border-slate-200/70 rounded-lg text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              />
+            </div>
+          )}
+          {(prospectError || sendError) && (
+            <div className="text-xs text-rose-600 mt-2">
+              {sendError || prospectError}
+            </div>
+          )}
+        </div>
+
         {/* Card Container with Glow Ring */}
         <GlowRing aiState={aiState} confidence={aiConfidence}>
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden glass-card border border-slate-200/70 shadow-[0_20px_60px_rgba(99,102,241,0.12)]">
@@ -320,10 +572,53 @@ export default function EmailComposer() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0 p-3 border-t border-slate-200/70">
-              <SendModes
-                onSendModeChange={handleSendModeChange}
-                defaultMode={sendMode}
-              />
+              <div className="flex flex-col items-end gap-2">
+                <SendModes
+                  onSendModeChange={handleSendModeChange}
+                  defaultMode={sendMode}
+                  onSend={handleSend}
+                />
+                {sendStatus !== "idle" && (
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border w-full max-w-[320px] ${
+                      sendStatus === "sending"
+                        ? "bg-slate-50 text-slate-600 border-slate-200"
+                        : sendStatus === "queued"
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        : sendStatus === "sent"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200"
+                    }`}
+                  >
+                    {sendStatus === "sending" && (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="flex-1">Preparing your email…</span>
+                      </>
+                    )}
+                    {sendStatus === "queued" && (
+                      <>
+                        <Clock3 className="w-4 h-4" />
+                        <span className="flex-1">
+                          Step 1 queued. Tracking engagement…
+                        </span>
+                      </>
+                    )}
+                    {sendStatus === "sent" && (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span className="flex-1">Sent successfully</span>
+                      </>
+                    )}
+                    {sendStatus === "failed" && (
+                      <>
+                        <AlertTriangle className="w-4 h-4" />
+                        <span className="flex-1">Send failed. Check SMTP.</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </GlowRing>
@@ -332,6 +627,8 @@ export default function EmailComposer() {
       {/* Copilot Panel */}
       <CopilotPanel
         draft={draft}
+        prospect={insightsProspect}
+        isNewRecipient={isNewRecipient}
         tone={tone}
         sendMode={sendMode}
         onToneChange={handleToneChange}

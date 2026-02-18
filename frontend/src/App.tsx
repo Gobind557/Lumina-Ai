@@ -16,7 +16,24 @@ const AppShell = () => (
 
 const hasAuthToken = () => {
   const token = localStorage.getItem('auth_token')
-  return Boolean(token?.trim())
+  if (!token?.trim()) return false
+
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return false
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='))
+    const decoded = JSON.parse(json) as { exp?: number }
+    if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+      localStorage.removeItem('auth_token')
+      return false
+    }
+  } catch {
+    localStorage.removeItem('auth_token')
+    return false
+  }
+
+  return true
 }
 
 const RequireAuth = () => {

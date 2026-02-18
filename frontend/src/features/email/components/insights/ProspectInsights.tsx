@@ -2,9 +2,13 @@ import type { Prospect } from "@/shared/types";
 
 interface ProspectInsightsProps {
   prospect?: Prospect;
+  isNewRecipient?: boolean;
 }
 
-export default function ProspectInsights({ prospect }: ProspectInsightsProps) {
+export default function ProspectInsights({
+  prospect,
+  isNewRecipient = false,
+}: ProspectInsightsProps) {
   // Default data for MVP
   const defaultProspect: Prospect = {
     id: "1",
@@ -16,11 +20,17 @@ export default function ProspectInsights({ prospect }: ProspectInsightsProps) {
   };
 
   const data = prospect || defaultProspect;
-  const initials = data.name
+  const safeName = data.name?.trim() || "";
+  const initialsSource = safeName || data.email || "Prospect";
+  const initials = initialsSource
     .split(" ")
     .map((n) => n[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase()
+    .slice(0, 2);
+
+  const hasTitleOrCompany = Boolean(data.title || data.company);
+  const showEmailAsTitle = !safeName || safeName.toLowerCase() === "prospect";
 
   return (
     <div className="glass-card p-4 space-y-3 flex-shrink-0 hover:border-slate-300/70 transition-all duration-300">
@@ -40,9 +50,15 @@ export default function ProspectInsights({ prospect }: ProspectInsightsProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-slate-900 text-base">{data.name}</h4>
+          <h4 className="font-semibold text-slate-900 text-base">
+            {showEmailAsTitle ? data.email : data.name}
+          </h4>
           <p className="text-sm text-slate-600 mt-0.5">
-            {data.title} {data.company && `at ${data.company}`}
+            {showEmailAsTitle && !hasTitleOrCompany
+              ? isNewRecipient
+                ? "New recipient"
+                : "Recipient"
+              : `${data.title ?? ""} ${data.company ? `at ${data.company}` : ""}`.trim()}
           </p>
           {data.location && (
             <p className="text-xs text-slate-500 mt-1">{data.location}</p>

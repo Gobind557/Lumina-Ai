@@ -3,12 +3,16 @@ import { ApiError } from "../middleware/error.middleware";
 
 export const listProspects = async (params: {
   workspaceId?: string;
+  email?: string;
   search?: string;
   limit: number;
   offset: number;
 }) => {
   const where = {
     ...(params.workspaceId ? { workspaceId: params.workspaceId } : {}),
+    ...(params.email
+      ? { email: { equals: params.email, mode: "insensitive" } }
+      : {}),
     ...(params.search
       ? {
           OR: [

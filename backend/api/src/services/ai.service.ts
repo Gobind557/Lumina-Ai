@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import { env } from "../config/env";
 
-const client = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+const client = new OpenAI({
+  apiKey: env.GROQ_API_KEY,
+  baseURL: env.GROQ_BASE_URL,
+});
 
 const buildPrompt = (payload: {
   subject?: string | null;
@@ -39,7 +42,7 @@ const buildPrompt = (payload: {
 
 const callOpenAI = async (prompt: string) => {
   const response = await client.chat.completions.create({
-    model: env.OPENAI_MODEL,
+    model: env.GROQ_MODEL,
     temperature: 0.7,
     messages: [
       {

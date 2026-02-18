@@ -5,11 +5,13 @@ export type SendMode = "send_now" | "send_at_best_time" | "add_to_sequence";
 
 interface SendModesProps {
   onSendModeChange?: (mode: SendMode) => void;
+  onSend?: () => void;
   defaultMode?: SendMode;
 }
 
 export default function SendModes({
   onSendModeChange,
+  onSend,
   defaultMode = "send_at_best_time",
 }: SendModesProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,14 +45,22 @@ export default function SendModes({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 flex items-center gap-2 text-sm shadow-lg"
-      >
-        <Send className="w-4 h-4" />
-        Send
-        <span className="text-xs opacity-75">▼</span>
-      </button>
+      <div className="inline-flex rounded-lg shadow-lg overflow-hidden">
+        <button
+          onClick={onSend}
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium transition-all duration-200 flex items-center gap-2 text-sm"
+        >
+          <Send className="w-4 h-4" />
+          Send now
+        </button>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 text-sm"
+          aria-label="Select send mode"
+        >
+          <span className="text-xs opacity-80">▼</span>
+        </button>
+      </div>
 
       {isOpen && (
         <div className="absolute bottom-full left-0 mb-2 w-64 bg-white border border-gray-200 rounded-lg shadow-xl z-50 animate-fade-in">

@@ -22,26 +22,15 @@ export function useEmailDraft(initialDraft?: EmailDraft) {
     if (stored) {
       return stored
     }
-
-    const response = await apiRequest<{
-      id: string
-    }>(API_ENDPOINTS.PROSPECTS, {
-      method: 'POST',
-      body: JSON.stringify({
-        email: 'prospect@example.com',
-        first_name: 'Prospect',
-        last_name: 'User',
-        company: 'Example Inc',
-      }),
-    })
-
-    localStorage.setItem(DEFAULT_PROSPECT_STORAGE_KEY, response.id)
-    return response.id
+    return null
   }, [draft.prospectId])
 
   const saveDraftImmediate = useCallback(
     async (draftToSave: EmailDraft) => {
       const prospectId = draftToSave.prospectId || (await ensureProspectId())
+      if (!prospectId) {
+        return ''
+      }
 
       const response = await apiRequest<{ id: string; updated_at: string }>(
         API_ENDPOINTS.DRAFTS,
@@ -107,11 +96,31 @@ export function useEmailDraft(initialDraft?: EmailDraft) {
     [saveDraftDebounced]
   )
 
+  const updateProspectId = useCallback(
+    (prospectId: string) => {
+      setDraft((prev) => {
+        const next = {
+          ...prev,
+          prospectId,
+          updatedAt: new Date(),
+        }
+        saveDraftDebounced(next)
+        return next
+      })
+    },
+    [saveDraftDebounced]
+  )
+
   return {
     draft,
     updateSubject,
     updateContent,
+    updateProspectId,
     saveDraft: () => saveDraftDebounced(draft),
-    saveDraftNow: () => saveDraftImmediate(draft),
+    saveDraftNow: (overrideProspectId?: string) =>
+      saveDraftImmediate({
+        ...draft,
+        prospectId: overrideProspectId ?? draft.prospectId,
+      }),
   }
 }
