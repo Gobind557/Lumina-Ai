@@ -43,6 +43,7 @@ export const emailRepository = {
     userId: string;
     workspaceId?: string | null;
     prospectId?: string | null;
+    campaignId?: string | null;
     draftId?: string | null;
     fromEmail: string;
     toEmail: string;
@@ -61,6 +62,7 @@ export const emailRepository = {
         userId: payload.userId,
         workspaceId: payload.workspaceId ?? null,
         prospectId: payload.prospectId ?? null,
+        campaignId: payload.campaignId ?? null,
         draftId: payload.draftId ?? null,
         fromEmail: payload.fromEmail,
         toEmail: payload.toEmail,

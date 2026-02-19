@@ -23,6 +23,7 @@ export const createEmailSend = async (payload: {
   userId: string;
   workspaceId?: string | null;
   prospectId?: string | null;
+  campaignId?: string | null;
   draftId?: string | null;
   fromEmail: string;
   toEmail: string;
@@ -38,6 +39,7 @@ export const createEmailSend = async (payload: {
     userId: email.userId,
     prospectId: email.prospectId ?? undefined,
     workspaceId: email.workspaceId ?? undefined,
+    campaignId: email.campaignId ?? undefined,
     toEmail: email.toEmail,
     subject: email.subject,
   });

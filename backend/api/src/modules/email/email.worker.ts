@@ -30,6 +30,7 @@ const worker = new Worker(
         emailId,
         userId: email.userId,
         prospectId: email.prospectId ?? undefined,
+        campaignId: email.campaignId ?? undefined,
         providerMessageId: messageId,
         sentAt: sentAt.toISOString(),
       });

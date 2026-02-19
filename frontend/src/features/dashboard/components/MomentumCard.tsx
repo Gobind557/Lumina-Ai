@@ -1,4 +1,5 @@
 import { ExternalLink, ChevronDown, Flame } from "lucide-react";
+import { useDashboardMomentum } from "../hooks/useDashboard";
 
 interface ContactActivity {
   name: string;
@@ -10,33 +11,6 @@ interface ContactActivity {
   isHot?: boolean;
 }
 
-const activities: ContactActivity[] = [
-  {
-    name: "Sarah Mitchell",
-    activity: "Opened 5m ago: Ils",
-    time: "5m",
-    minutesAgo: 5,
-    action: "follow-up",
-    actionLabel: "Follow Up",
-    isHot: true,
-  },
-  {
-    name: "Emily Wong",
-    activity: "Opened 23 minutes Ils",
-    time: "23m",
-    minutesAgo: 23,
-    action: "view",
-    actionLabel: "View",
-  },
-  {
-    name: "James Carter",
-    activity: "Receuit soon yesterday",
-    time: "yesterday",
-    action: "view",
-    actionLabel: "View",
-  },
-];
-
 const getInitials = (name: string) => {
   return name
     .split(" ")
@@ -46,6 +20,47 @@ const getInitials = (name: string) => {
 };
 
 export default function MomentumCard() {
+  const { momentum, loading } = useDashboardMomentum();
+
+  // Combine opens and replies, prioritize replies
+  const activities: ContactActivity[] = momentum
+    ? [
+        ...momentum.replies.map((reply) => ({
+          name: reply.prospectName,
+          activity: reply.activity,
+          time: reply.time,
+          minutesAgo: reply.minutesAgo,
+          action: "follow-up",
+          actionLabel: "Follow Up",
+          isHot: reply.isHot,
+        })),
+        ...momentum.opens
+          .filter((open) => open.isHot)
+          .map((open) => ({
+            name: open.prospectName,
+            activity: open.activity,
+            time: open.time,
+            minutesAgo: open.minutesAgo,
+            action: "view",
+            actionLabel: "View",
+            isHot: open.isHot,
+          })),
+      ].slice(0, 10)
+    : [];
+
+  if (loading) {
+    return (
+      <div className="glass-card p-6 relative overflow-hidden h-full flex flex-col">
+        <div className="relative z-10 flex flex-col h-full">
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">Momentum</h3>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-sm text-slate-500">Loading...</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-card p-6 relative overflow-hidden h-full flex flex-col">
       <div className="relative z-10 flex flex-col h-full">
@@ -60,7 +75,12 @@ export default function MomentumCard() {
 
         {/* Activities List */}
         <div className="flex-1 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {activities.map((activity, index) => {
+          {activities.length === 0 ? (
+            <div className="text-sm text-slate-500 text-center py-8">
+              No recent activity
+            </div>
+          ) : (
+            activities.map((activity, index) => {
             const isHot = activity.minutesAgo !== undefined && activity.minutesAgo < 10;
             const hasGlow = activity.isHot;
             
@@ -97,7 +117,8 @@ export default function MomentumCard() {
                 </div>
               </div>
             );
-          })}
+            })
+          )}
         </div>
       </div>
     </div>

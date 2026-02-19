@@ -37,6 +37,7 @@ model User {
   emails       Email[]
   oauth        OAuthConnection[]
   templates    Template[]
+  campaigns    Campaign[]
 }
 
 model OAuthConnection {
@@ -102,6 +103,7 @@ model Email {
   userId           String
   workspaceId      String?
   prospectId       String?
+  campaignId       String?
   fromEmail        String
   toEmail          String
   subject          String
@@ -117,7 +119,9 @@ model Email {
   user       User            @relation(fields: [userId], references: [id])
   draft      EmailDraft?     @relation(fields: [draftId], references: [id])
   prospect   Prospect?       @relation(fields: [prospectId], references: [id])
+  campaign   Campaign?       @relation(fields: [campaignId], references: [id])
   openEvents EmailOpenEvent[]
+  replyEvents EmailReplyEvent[]
 }
 
 model EmailOpenEvent {
@@ -129,6 +133,19 @@ model EmailOpenEvent {
   email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
   @@index([emailId])
   @@index([openedAt])
+}
+
+model EmailReplyEvent {
+  id        String   @id @default(uuid())
+  emailId   String
+  repliedAt DateTime @default(now())
+  replySubject String?
+  replyBody   String?
+  createdAt DateTime @default(now())
+
+  email Email @relation(fields: [emailId], references: [id], onDelete: Cascade)
+  @@index([emailId])
+  @@index([repliedAt])
 }
 
 model Template {
@@ -148,4 +165,31 @@ model Template {
   updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+model Campaign {
+  id          String         @id @default(uuid())
+  userId      String
+  workspaceId String?
+  name        String
+  description String?
+  status      CampaignStatus @default(DRAFT)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  emails Email[]
+  @@index([userId])
+  @@index([status])
+  @@index([startDate])
 }
