@@ -112,12 +112,16 @@ export const getDashboardTimeline = async (
     }),
   ]);
 
-  // Group by day
+  // Group by day: include every day in range so opens/replies show on the day they occurred
   const timeline: Record<string, { opens: number; replies: number }> = {};
-  emails.forEach((email) => {
-    const day = email.sentAt?.toISOString().split("T")[0] || "";
-    if (!timeline[day]) timeline[day] = { opens: 0, replies: 0 };
-  });
+  const endDate = new Date();
+  const cursor = new Date(startDate);
+  cursor.setHours(0, 0, 0, 0);
+  while (cursor <= endDate) {
+    const day = cursor.toISOString().split("T")[0];
+    timeline[day] = { opens: 0, replies: 0 };
+    cursor.setDate(cursor.getDate() + 1);
+  }
 
   opens.forEach((open) => {
     const day = open.openedAt.toISOString().split("T")[0];

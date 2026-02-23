@@ -56,17 +56,18 @@ const getActionIcon = (actionType: NextAction["actionType"]) => {
   }
 };
 
+// Next actions: no backend endpoint yet; uses static list. See DASHBOARD_REALTIME_PLAN.md.
 export default function WhatToDoNextCard() {
   return (
-    <div className="glass-card p-6 relative overflow-hidden h-full flex flex-col">
-      <div className="relative z-10 flex flex-col h-full">
+    <div className="glass-card p-6 relative overflow-hidden h-full min-h-0 min-w-0 flex flex-col">
+      <div className="relative z-10 flex flex-col h-full min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <h3 className="text-lg font-semibold text-slate-900">What to do next</h3>
         </div>
 
-        {/* Actions List */}
-        <div className="flex-1 space-y-4 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* Actions List - scrollable */}
+        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto overflow-x-hidden">
           {actions.map((action, index) => (
             <div key={index} className="flex items-start gap-3">
               {/* Avatar */}

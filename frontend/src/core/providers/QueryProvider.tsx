@@ -1,14 +1,22 @@
 import { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: true,
+    },
+  },
+})
 
 /**
- * Query Provider - wraps the app with React Query (when installed)
- * For now, this is a placeholder that can be enhanced when @tanstack/react-query is added
+ * Query Provider - wraps the app with React Query for server state, caching, and polling.
  */
 export function QueryProvider({ children }: { children: ReactNode }) {
-  // TODO: Add React Query when @tanstack/react-query is installed
-  // import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-  // const queryClient = new QueryClient()
-  // return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  
-  return <>{children}</>
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
 }

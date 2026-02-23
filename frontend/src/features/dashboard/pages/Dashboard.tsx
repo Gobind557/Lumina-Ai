@@ -9,37 +9,36 @@ import {
 
 export default function Dashboard() {
   return (
-    <div className="h-full overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
+    <div className="h-full w-full max-w-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative box-border flex flex-col overflow-hidden">
 
-      {/* Main Content */}
-      <div className="relative z-10 h-full overflow-y-auto flex flex-col p-4 gap-4">
-        {/* Top Banner */}
-        <div className="flex-shrink-0">
+      {/* Main Content - fills height; banner + middle + bottom so bottom is never clipped */}
+      <div className="relative w-full flex-1 min-h-0 flex flex-col p-4 md:p-6 gap-4 box-border overflow-hidden">
+        {/* Top Banner - own stacking context so it doesn't block clicks below */}
+        <div className="flex-shrink-0 w-full relative z-0 isolate">
           <TopBanner />
         </div>
 
-        {/* Main Grid - Timeline and Action Center */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-shrink-0">
-          {/* Left Column - Live Conversation Timeline */}
-          <div className="lg:col-span-2">
-            <LiveConversationTimeline />
-          </div>
-
-          {/* Right Column - Action Center */}
-          <div>
-            <ActionCenter />
+        {/* Middle: Timeline + Action Center - fills space; Action Center stretches to match Timeline height */}
+        <div className="relative z-10 flex-1 min-h-0 min-w-0 flex flex-col">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-full min-w-0 flex-1 min-h-0 items-stretch">
+            <div className="lg:col-span-2 min-w-0 w-full min-h-0 overflow-y-auto">
+              <LiveConversationTimeline />
+            </div>
+            <div className="min-w-0 w-full min-h-0 flex flex-col">
+              <ActionCenter />
+            </div>
           </div>
         </div>
 
-        {/* Bottom Row - Momentum, Best Time, What to do next */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-0">
-          <div className="min-h-0">
+        {/* Bottom Row - fixed height, always visible; padding so not clipped */}
+        <div className="relative z-10 flex-shrink-0 grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-full min-w-0 h-[340px] lg:h-[360px]">
+          <div className="min-h-0 min-w-0 h-full">
             <MomentumCard />
           </div>
-          <div className="min-h-0">
+          <div className="min-h-0 min-w-0 h-full">
             <BestTimeCard />
           </div>
-          <div className="min-h-0">
+          <div className="min-h-0 min-w-0 h-full">
             <WhatToDoNextCard />
           </div>
         </div>

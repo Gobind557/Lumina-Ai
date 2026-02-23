@@ -11,7 +11,7 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="hidden lg:flex lg:w-52 bg-white/70 backdrop-blur-xl border-r border-slate-200/70 flex-col">
+    <aside className="hidden lg:flex lg:w-52 lg:flex-shrink-0 lg:flex-grow-0 bg-white/70 backdrop-blur-xl border-r border-slate-200/70 flex-col">
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
