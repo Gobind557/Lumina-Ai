@@ -5,6 +5,7 @@ import { aiRoutes } from "../modules/ai/ai.routes";
 import { prospectRoutes } from "../modules/prospect/prospect.routes";
 import { templateRoutes } from "../modules/template/template.routes";
 import { dashboardRoutes } from "../modules/dashboard/dashboard.routes";
+import { campaignRoutes } from "../modules/campaign/campaign.routes";
 import { emailOpenWebhook, emailReplyWebhook } from "../modules/email/webhook.controller";
 import { authMiddleware } from "../shared/middleware/auth.middleware";
 
@@ -19,4 +20,5 @@ routes.use("/emails", authMiddleware, emailRoutes);
 routes.use("/ai", authMiddleware, aiRoutes);
 routes.use("/prospects", authMiddleware, prospectRoutes);
 routes.use("/templates", authMiddleware, templateRoutes);
+routes.use("/campaigns", campaignRoutes);
 routes.use("/dashboard", dashboardRoutes);

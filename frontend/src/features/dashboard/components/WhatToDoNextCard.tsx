@@ -63,7 +63,9 @@ export default function WhatToDoNextCard() {
       <div className="relative z-10 flex flex-col h-full min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h3 className="text-lg font-semibold text-slate-900">What to do next</h3>
+          <h3 className="text-lg font-semibold text-slate-900">
+            What to do next
+          </h3>
         </div>
 
         {/* Actions List - scrollable */}
@@ -78,7 +80,9 @@ export default function WhatToDoNextCard() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-900">{action.name}</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {action.name}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2 mb-1">
                   {getActionIcon(action.actionType)}
@@ -92,12 +96,16 @@ export default function WhatToDoNextCard() {
                   </span>
                 </div>
                 {action.reasoning && (
-                  <p className="text-xs text-slate-400 mb-2">{action.reasoning}</p>
+                  <p className="text-xs text-slate-400 mb-2">
+                    {action.reasoning}
+                  </p>
                 )}
                 <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors relative">
                   {action.actionLabel}
                   {action.buttonLabel && (
-                    <span className="ml-1.5 text-[10px] text-slate-500">{action.buttonLabel}</span>
+                    <span className="ml-1.5 text-[10px] text-slate-500">
+                      {action.buttonLabel}
+                    </span>
                   )}
                 </button>
               </div>

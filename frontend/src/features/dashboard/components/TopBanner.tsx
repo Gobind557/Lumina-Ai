@@ -30,17 +30,22 @@ export default function TopBanner() {
           <Sparkles className="w-5 h-5 text-indigo-500" />
         </div>
         <p className="text-sm text-slate-700 flex-1">
-          Today: <span className="font-semibold text-slate-900">{today} sent</span>
+          Today:{" "}
+          <span className="font-semibold text-slate-900">{today} sent</span>
           {opens > 0 && (
             <>
               {" · "}
-              <span className="font-semibold text-emerald-600">{opens} opens</span>
+              <span className="font-semibold text-emerald-600">
+                {opens} opens
+              </span>
             </>
           )}
           {replies > 0 && (
             <>
               {" · "}
-              <span className="font-semibold text-indigo-600">{replies} replies</span>
+              <span className="font-semibold text-indigo-600">
+                {replies} replies
+              </span>
             </>
           )}
         </p>

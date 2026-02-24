@@ -15,7 +15,7 @@ export default function ActionCenter() {
 
   if (loading) {
     return (
-      <div className="h-full min-h-0 bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
+      <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
         <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
         <div className="relative z-10 flex flex-col items-center">
           <div className="h-5 w-32 bg-slate-200/60 rounded animate-pulse mb-6" />
@@ -31,11 +31,11 @@ export default function ActionCenter() {
   }
 
   return (
-    <div className="h-full min-h-0 bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)] flex flex-col">
+    <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
       <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
       <div className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-indigo-400/15 blur-2xl pointer-events-none" />
       <div className="absolute left-6 top-0 h-px w-2/3 bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
-      <div className="relative z-10 flex flex-col items-center flex-1 justify-center">
+      <div className="relative z-10 flex flex-col items-center">
         <h3 className="text-lg font-semibold text-slate-900 mb-6 w-full text-left">Action Center</h3>
 
         <div className="relative mb-6" style={{ width: 140, height: 140 }}>

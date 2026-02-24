@@ -47,7 +47,9 @@ export default function BestTimeCard() {
         <div className="mb-4 p-3 bg-white/80 rounded-lg border border-slate-200/70 flex-shrink-0">
           <div className="flex items-center gap-2 mb-1">
             <Clock className="w-4 h-4 text-indigo-500" />
-            <span className="text-sm font-semibold text-slate-900">Tue 9am</span>
+            <span className="text-sm font-semibold text-slate-900">
+              Tue 9am
+            </span>
           </div>
           <span className="text-xs text-emerald-600 mb-1 block">+ 32.6%</span>
           <p className="text-xs text-slate-500 mt-2">
@@ -67,10 +69,14 @@ export default function BestTimeCard() {
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-900">{activity.name}</span>
+                  <span className="text-sm font-medium text-slate-900">
+                    {activity.name}
+                  </span>
                 </div>
                 <p className="text-xs text-slate-500 mb-1">{activity.title}</p>
-                <p className="text-xs text-slate-400 mb-2">{activity.description}</p>
+                <p className="text-xs text-slate-400 mb-2">
+                  {activity.description}
+                </p>
                 <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors">
                   {activity.actionLabel}
                 </button>

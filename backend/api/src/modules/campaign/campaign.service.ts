@@ -40,6 +40,7 @@ export const listCampaigns = async (params: {
       orderBy: { createdAt: "desc" },
       take: params.limit,
       skip: params.offset,
+      include: { _count: { select: { emails: true } } },
     }),
   ]);
 

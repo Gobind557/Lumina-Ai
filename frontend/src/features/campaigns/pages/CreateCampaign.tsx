@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
+import { useCreateCampaign } from '../hooks/useCreateCampaign'
+import { campaignsApi } from '../api/campaigns.api'
 
 const PROSPECTS = [
   { id: '1', name: 'Sarah Mitchell' },
@@ -18,9 +20,35 @@ const STEPS = [
 
 export default function CreateCampaign() {
   const navigate = useNavigate()
+  const { createCampaign, loading: creating, error: createError } = useCreateCampaign()
   const [campaignName, setCampaignName] = useState('Startup Cold Outreach')
   const [sequenceEnabled, setSequenceEnabled] = useState(true)
   const [approvalEnabled, setApprovalEnabled] = useState(true)
+
+  const handleSaveDraft = async () => {
+    try {
+      const campaign = await createCampaign({
+        name: campaignName.trim() || 'Untitled Campaign',
+        description: null,
+      })
+      navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
+    } catch {
+      // error in createError
+    }
+  }
+
+  const handleStartCampaign = async () => {
+    try {
+      const campaign = await createCampaign({
+        name: campaignName.trim() || 'Untitled Campaign',
+        description: null,
+      })
+      await campaignsApi.updateStatus(campaign.id, 'ACTIVE')
+      navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
+    } catch {
+      // error in createError
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
@@ -143,18 +171,25 @@ export default function CreateCampaign() {
               </div>
             </div>
           </div>
+          {createError && (
+            <div className="rounded-lg bg-amber-500/10 border border-amber-300/60 text-amber-800 text-xs px-3 py-2">
+              {createError.message}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate(ROUTES.CAMPAIGNS)}
-              className="px-4 py-2 rounded-lg border border-slate-200/70 text-slate-700 text-xs bg-white/70"
+              onClick={handleSaveDraft}
+              disabled={creating}
+              className="px-4 py-2 rounded-lg border border-slate-200/70 text-slate-700 text-xs bg-white/70 disabled:opacity-50"
             >
-              Save as Draft
+              {creating ? 'Saving…' : 'Save as Draft'}
             </button>
             <button
-              onClick={() => navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', 'campaign-1'))}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium"
+              onClick={handleStartCampaign}
+              disabled={creating}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium disabled:opacity-50"
             >
-              Start Campaign
+              {creating ? 'Starting…' : 'Start Campaign'}
             </button>
           </div>
         </div>
