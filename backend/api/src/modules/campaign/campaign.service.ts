@@ -54,8 +54,9 @@ export const createCampaign = async (payload: {
   description?: string | null;
   startDate?: Date | null;
   endDate?: Date | null;
+  prospectIds?: string[];
 }) => {
-  return prisma.campaign.create({
+  const campaign = await prisma.campaign.create({
     data: {
       userId: payload.userId,
       workspaceId: payload.workspaceId ?? null,
@@ -66,6 +67,18 @@ export const createCampaign = async (payload: {
       endDate: payload.endDate ?? null,
     },
   });
+  if (payload.prospectIds?.length) {
+    await prisma.campaignProspect.createMany({
+      data: payload.prospectIds.map((prospectId) => ({
+        campaignId: campaign.id,
+        prospectId,
+        status: "ACTIVE",
+        currentStep: 0,
+      })),
+      skipDuplicates: true,
+    });
+  }
+  return campaign;
 };
 
 export const updateCampaignStatus = async (
@@ -86,4 +99,31 @@ export const getCampaignWithMetrics = async (id: string, userId: string) => {
   const campaign = await getCampaignById(id, userId);
   const metrics = await getCampaignMetrics(id);
   return { ...campaign, metrics };
+};
+
+export const getCampaignProspects = async (campaignId: string, userId: string) => {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, userId },
+    select: { id: true },
+  });
+  if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
+
+  const rows = await prisma.campaignProspect.findMany({
+    where: { campaignId },
+    include: {
+      prospect: {
+        select: { id: true, firstName: true, lastName: true, email: true, company: true },
+      },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return rows.map((row) => ({
+    prospectId: row.prospectId,
+    name: [row.prospect.firstName, row.prospect.lastName].filter(Boolean).join(" ") || row.prospect.email,
+    email: row.prospect.email,
+    company: row.prospect.company ?? "",
+    status: row.status,
+    currentStep: row.currentStep,
+  }));
 };

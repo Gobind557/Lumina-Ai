@@ -4,6 +4,7 @@ import {
   getCampaignWithMetrics,
   createCampaign,
   updateCampaignStatus,
+  getCampaignProspects,
 } from "./campaign.service";
 
 export const list = async (
@@ -59,7 +60,7 @@ export const create = async (
       return res.status(401).json({ error: "Unauthorized" });
     }
     const userId = req.user.id;
-    const { name, description, startDate, endDate, workspaceId } = req.body;
+    const { name, description, startDate, endDate, workspaceId, prospectIds } = req.body;
     const campaign = await createCampaign({
       userId,
       workspaceId: workspaceId ?? null,
@@ -67,8 +68,27 @@ export const create = async (
       description: description ?? null,
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
+      prospectIds: Array.isArray(prospectIds) ? prospectIds : undefined,
     });
     res.status(201).json(campaign);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getProspects = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    const userId = req.user.id;
+    const { id } = req.params;
+    const prospects = await getCampaignProspects(id, userId);
+    res.json(prospects);
   } catch (error) {
     next(error);
   }

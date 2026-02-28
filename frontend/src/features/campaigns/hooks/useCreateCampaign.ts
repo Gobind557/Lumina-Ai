@@ -10,6 +10,7 @@ export function useCreateCampaign() {
     description?: string | null
     startDate?: string | null
     endDate?: string | null
+    prospectIds?: string[]
   }) => {
     try {
       setLoading(true)

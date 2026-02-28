@@ -3,6 +3,7 @@ import { ChevronDown, MoreVertical } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCampaign } from '../hooks/useCampaign'
+import { useCampaignProspects } from '../hooks/useCampaignProspects'
 import { useUpdateCampaignStatus } from '../hooks/useUpdateCampaignStatus'
 
 const STEPS = [
@@ -19,14 +20,6 @@ const ACTIVITY = [
   { id: '5', initials: 'SC', name: 'Sam Carter', detail: 'Backed up 2 days ago', time: '8 hr ago' },
 ]
 
-const PROSPECTS = [
-  { id: 'p1', name: 'Sarah Mitchell', rate: '0%' },
-  { id: 'p2', name: 'Emily Wong', rate: '0%' },
-  { id: 'p3', name: 'Chris Yu', rate: '0%' },
-  { id: 'p4', name: 'Emma Davis', rate: '0%' },
-  { id: 'p5', name: 'Sam Carter', rate: '0%' },
-  { id: 'p6', name: 'Edward Kim', rate: '0%' },
-]
 
 const OFFER_OPTIONS = ['All prospects', 'Offer prospects', 'Not yet offered', 'By step']
 
@@ -47,7 +40,12 @@ export default function CampaignDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { campaign, loading: campaignLoading, error: campaignError, refetch } = useCampaign(id)
+  const { prospects, loading: prospectsLoading } = useCampaignProspects(id)
   const { updateStatus, loading: statusLoading } = useUpdateCampaignStatus()
+
+  const totalProspects = prospects.length
+  const activeCount = prospects.filter((p) => p.status === 'ACTIVE').length
+  const repliedCount = prospects.filter((p) => p.status === 'REPLIED').length
   const [selectedStep, setSelectedStep] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'activity' | 'insights'>('activity')
   const [offerFilter, setOfferFilter] = useState('Offer prospects')
@@ -249,10 +247,10 @@ export default function CampaignDetail() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-slate-600">
             {[
-              { label: 'Prospects Active', value: '105' },
-              { label: 'Replies', value: '24' },
-              { label: 'Open Rate', value: '58%' },
-              { label: 'Avg Reply time', value: '3.4h' },
+              { label: 'Total prospects', value: String(totalProspects) },
+              { label: 'Active', value: String(activeCount) },
+              { label: 'Replied', value: String(repliedCount) },
+              { label: 'Open Rate', value: '—' },
             ].map((metric) => (
               <div key={metric.label} className="rounded-xl bg-white/70 border border-slate-200/70 p-3">
                 <p className="text-[11px] text-slate-500">{metric.label}</p>
@@ -390,20 +388,27 @@ export default function CampaignDetail() {
                 </div>
               </div>
               <div className="space-y-2 text-xs text-slate-600">
-                {PROSPECTS.map((prospect) => (
-                  <div key={prospect.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-indigo-500/15 text-[10px] text-indigo-700 flex items-center justify-center border border-indigo-200/70">
-                        {prospect.name
-                          .split(' ')
-                          .map((part) => part[0])
-                          .join('')}
+                {prospectsLoading && <p className="text-slate-500">Loading prospects…</p>}
+                {!prospectsLoading && prospects.length === 0 && (
+                  <p className="text-slate-500">No prospects in this campaign.</p>
+                )}
+                {!prospectsLoading &&
+                  prospects.map((prospect) => (
+                    <div key={prospect.prospectId} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-500/15 text-[10px] text-indigo-700 flex items-center justify-center border border-indigo-200/70">
+                          {prospect.name
+                            .split(' ')
+                            .map((part) => part[0])
+                            .join('') || prospect.email[0]?.toUpperCase() || '?'}
+                        </div>
+                        <span>{prospect.name || prospect.email}</span>
                       </div>
-                      <span>{prospect.name}</span>
+                      <span className="text-slate-500">
+                        {prospect.status} · Step {prospect.currentStep}
+                      </span>
                     </div>
-                    <span className="text-slate-500">{prospect.rate}</span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>

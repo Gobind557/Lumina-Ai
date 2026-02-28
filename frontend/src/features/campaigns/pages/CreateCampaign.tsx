@@ -1,16 +1,10 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCreateCampaign } from '../hooks/useCreateCampaign'
 import { campaignsApi } from '../api/campaigns.api'
-
-const PROSPECTS = [
-  { id: '1', name: 'Sarah Mitchell' },
-  { id: '2', name: 'Emily Wong' },
-  { id: '3', name: 'Darren Kim' },
-  { id: '4', name: 'Sam Carter' },
-]
+import { useProspects } from '@/features/prospects/hooks/useProspects'
 
 const STEPS = [
   { day: 'Day 1', label: 'Initial Outreach' },
@@ -18,18 +12,48 @@ const STEPS = [
   { day: 'Day 3', label: 'Breakup Email' },
 ]
 
+function prospectDisplayName(p: { first_name: string | null; last_name: string | null; email: string }) {
+  const parts = [p.first_name, p.last_name].filter(Boolean) as string[]
+  return parts.length ? parts.join(' ') : p.email
+}
+
 export default function CreateCampaign() {
   const navigate = useNavigate()
   const { createCampaign, loading: creating, error: createError } = useCreateCampaign()
+  const { prospects: allProspects, loading: prospectsLoading } = useProspects('')
   const [campaignName, setCampaignName] = useState('Startup Cold Outreach')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [sequenceEnabled, setSequenceEnabled] = useState(true)
   const [approvalEnabled, setApprovalEnabled] = useState(true)
+
+  const toggleProspect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const selectAll = () => {
+    if (selectedIds.size === allProspects.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(allProspects.map((p) => p.id)))
+    }
+  }
+
+  const selectedProspects = useMemo(
+    () => allProspects.filter((p) => selectedIds.has(p.id)),
+    [allProspects, selectedIds]
+  )
 
   const handleSaveDraft = async () => {
     try {
       const campaign = await createCampaign({
         name: campaignName.trim() || 'Untitled Campaign',
         description: null,
+        prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
       })
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
@@ -42,6 +66,7 @@ export default function CreateCampaign() {
       const campaign = await createCampaign({
         name: campaignName.trim() || 'Untitled Campaign',
         description: null,
+        prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
       })
       await campaignsApi.updateStatus(campaign.id, 'ACTIVE')
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
@@ -51,9 +76,9 @@ export default function CreateCampaign() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
+    <div className="min-h-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
 
-      <div className="relative z-10 p-6 max-w-3xl mx-auto space-y-4">
+      <div className="relative z-10 px-6 pt-6 pb-12 max-w-3xl mx-auto space-y-4">
         <div className="text-slate-900 text-lg font-semibold">New Campaign</div>
 
         <div className="glass-card p-5">
@@ -79,14 +104,39 @@ export default function CreateCampaign() {
               <p className="text-xs text-slate-500">Select prospects to target</p>
             </div>
             <div className="flex items-center gap-2 text-[11px]">
-              <button className="px-3 py-1 rounded-full border border-slate-200/70 text-slate-600 bg-white/70">
-                Select All
+              <button
+                type="button"
+                onClick={selectAll}
+                className="px-3 py-1 rounded-full border border-slate-200/70 text-slate-600 bg-white/70 hover:bg-white"
+              >
+                {selectedIds.size === allProspects.length && allProspects.length ? 'Deselect All' : 'Select All'}
               </button>
-              <button className="px-3 py-1 rounded-full border border-slate-200/70 text-slate-600 bg-white/70">
+              <button type="button" className="px-3 py-1 rounded-full border border-slate-200/70 text-slate-600 bg-white/70">
                 Import CSV
               </button>
             </div>
           </div>
+
+          {prospectsLoading && <p className="text-xs text-slate-500">Loading prospects…</p>}
+          {!prospectsLoading && allProspects.length === 0 && (
+            <p className="text-xs text-slate-500">No prospects yet. Add prospects first.</p>
+          )}
+          {!prospectsLoading && allProspects.length > 0 && (
+            <div className="border border-slate-200/70 rounded-xl bg-white/70 px-4 py-3 max-h-48 overflow-y-auto space-y-2">
+              {allProspects.map((p) => (
+                <label key={p.id} className="flex items-center gap-3 cursor-pointer text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(p.id)}
+                    onChange={() => toggleProspect(p.id)}
+                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="font-medium text-slate-900">{prospectDisplayName(p)}</span>
+                  <span className="text-xs text-slate-500 truncate">{p.email}</span>
+                </label>
+              ))}
+            </div>
+          )}
 
           <div className="border border-slate-200/70 rounded-xl bg-white/70 px-4 py-3">
             <div className="flex items-center justify-between">
@@ -94,7 +144,7 @@ export default function CreateCampaign() {
                 <div className="w-8 h-8 rounded-full bg-indigo-600/40 flex items-center justify-center text-xs text-white">
                   SC
                 </div>
-                <div className="text-sm text-slate-900">Startup Cold Outreach</div>
+                <div className="text-sm text-slate-900">Sequence</div>
               </div>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </div>
@@ -120,18 +170,25 @@ export default function CreateCampaign() {
           <div className="space-y-3 text-xs text-slate-600">
             <div className="flex items-center justify-between">
               <span>Audience:</span>
-              <div className="flex -space-x-2">
-                {PROSPECTS.map((prospect) => (
-                  <div
-                    key={prospect.id}
-                    className="w-6 h-6 rounded-full bg-indigo-600/40 border border-white/70 text-[10px] text-white flex items-center justify-center"
-                  >
-                    {prospect.name
-                      .split(' ')
-                      .map((part) => part[0])
-                      .join('')}
-                  </div>
-                ))}
+              <div className="flex items-center gap-2">
+                <span className="text-slate-500">{selectedProspects.length} selected</span>
+                <div className="flex -space-x-2">
+                  {selectedProspects.slice(0, 8).map((prospect) => (
+                    <div
+                      key={prospect.id}
+                      className="w-6 h-6 rounded-full bg-indigo-600/40 border border-white/70 text-[10px] text-white flex items-center justify-center"
+                      title={prospectDisplayName(prospect)}
+                    >
+                      {prospectDisplayName(prospect)
+                        .split(' ')
+                        .map((part) => part[0])
+                        .join('') || prospect.email[0]?.toUpperCase() || '?'}
+                    </div>
+                  ))}
+                  {selectedProspects.length > 8 && (
+                    <span className="text-[10px] text-slate-500 pl-1">+{selectedProspects.length - 8}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-between">

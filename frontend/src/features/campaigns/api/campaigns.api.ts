@@ -34,6 +34,17 @@ export interface Campaign {
   metrics?: CampaignMetrics
 }
 
+export type CampaignProspectStatus = 'ACTIVE' | 'REPLIED'
+
+export interface CampaignProspectItem {
+  prospectId: string
+  name: string
+  email: string
+  company: string
+  status: CampaignProspectStatus
+  currentStep: number
+}
+
 export interface ListCampaignsResponse {
   total: number
   campaigns: Campaign[]
@@ -53,12 +64,17 @@ export const campaignsApi = {
     return apiRequest<Campaign>(`${API_BASE}/campaigns/${id}`)
   },
 
+  getProspects: async (campaignId: string): Promise<CampaignProspectItem[]> => {
+    return apiRequest<CampaignProspectItem[]>(`${API_BASE}/campaigns/${campaignId}/prospects`)
+  },
+
   create: async (payload: {
     name: string
     description?: string | null
     startDate?: string | null
     endDate?: string | null
     workspaceId?: string | null
+    prospectIds?: string[]
   }): Promise<Campaign> => {
     return apiRequest<Campaign>(`${API_BASE}/campaigns`, {
       method: 'POST',
