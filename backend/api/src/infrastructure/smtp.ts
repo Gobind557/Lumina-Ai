@@ -1,6 +1,8 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 
+// SMTP transport is intentionally generic so we can plug in providers like Mailgun
+// by setting SMTP_* env vars to their SMTP credentials.
 export const createTransporter = () => {
   return nodemailer.createTransport({
     host: env.SMTP_HOST,

@@ -25,26 +25,31 @@ export const getDashboardStats = async (userId: string) => {
     })
     .then((emails) => emails.map((e) => e.id));
 
-  const [totalOpens, totalReplies, todayOpens, todayReplies] = await Promise.all([
-    prisma.emailOpenEvent.count({ where: { emailId: { in: sentEmailIds } } }),
-    prisma.emailReplyEvent.count({ where: { emailId: { in: sentEmailIds } } }),
-    prisma.emailOpenEvent.count({
-      where: {
-        emailId: { in: sentEmailIds },
-        openedAt: { gte: todayStart },
-      },
-    }),
-    prisma.emailReplyEvent.count({
-      where: {
-        emailId: { in: sentEmailIds },
-        repliedAt: { gte: todayStart },
-      },
-    }),
-  ]);
+  const [totalOpens, totalReplies, todayOpens, todayReplies] =
+    await Promise.all([
+      prisma.emailOpenEvent.count({ where: { emailId: { in: sentEmailIds } } }),
+      prisma.emailReplyEvent.count({
+        where: { emailId: { in: sentEmailIds } },
+      }),
+      prisma.emailOpenEvent.count({
+        where: {
+          emailId: { in: sentEmailIds },
+          openedAt: { gte: todayStart },
+        },
+      }),
+      prisma.emailReplyEvent.count({
+        where: {
+          emailId: { in: sentEmailIds },
+          repliedAt: { gte: todayStart },
+        },
+      }),
+    ]);
 
   // Calculate rates
-  const openRate = totalEmails > 0 ? Math.round((totalOpens / totalEmails) * 100) : 0;
-  const replyRate = totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0;
+  const openRate =
+    totalEmails > 0 ? Math.round((totalOpens / totalEmails) * 100) : 0;
+  const replyRate =
+    totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0;
 
   // Get active campaigns
   const activeCampaigns = await prisma.campaign.count({
@@ -71,53 +76,61 @@ export const getDashboardStats = async (userId: string) => {
 
 export const getDashboardTimeline = async (
   userId: string,
-  days: number = 7
+  days: number = 7,
 ) => {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
+  startDate.setHours(0, 0, 0, 0);
 
-  // Get emails sent in timeframe
-  const emails = await prisma.email.findMany({
-    where: {
-      userId,
-      status: "SENT",
-      sentAt: { gte: startDate },
-    },
-    select: {
-      id: true,
-      sentAt: true,
-      subject: true,
-      toEmail: true,
-      prospect: {
-        select: {
-          firstName: true,
-          lastName: true,
-        },
-      },
-    },
-    orderBy: { sentAt: "desc" },
-    take: 100,
-  });
+  const endDate = new Date();
 
-  // Get opens and replies for these emails
-  const emailIds = emails.map((e) => e.id);
-  const [opens, replies] = await Promise.all([
+  // Timeline: count opens and replies that *occurred* in the last N days (by openedAt/repliedAt),
+  // for any of the user's emails, so the graph matches readiness/momentum and shows recent activity.
+  const [opens, replies, emails] = await Promise.all([
     prisma.emailOpenEvent.findMany({
-      where: { emailId: { in: emailIds } },
-      select: { emailId: true, openedAt: true },
+      where: {
+        email: { userId },
+        openedAt: { gte: startDate, lte: endDate },
+      },
+      select: { openedAt: true },
     }),
     prisma.emailReplyEvent.findMany({
-      where: { emailId: { in: emailIds } },
-      select: { emailId: true, repliedAt: true },
+      where: {
+        email: { userId },
+        repliedAt: { gte: startDate, lte: endDate },
+      },
+      select: { repliedAt: true },
+    }),
+    prisma.email.findMany({
+      where: {
+        userId,
+        status: "SENT",
+        sentAt: { gte: startDate },
+      },
+      select: {
+        id: true,
+        sentAt: true,
+        subject: true,
+        toEmail: true,
+        prospect: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: { sentAt: "desc" },
+      take: 100,
     }),
   ]);
 
   // Group by day: include every day in range so opens/replies show on the day they occurred
   const timeline: Record<string, { opens: number; replies: number }> = {};
-  const endDate = new Date();
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
-  while (cursor <= endDate) {
+  const rangeEnd = new Date(endDate);
+  rangeEnd.setHours(23, 59, 59, 999);
+  while (cursor <= rangeEnd) {
     const day = cursor.toISOString().split("T")[0];
     timeline[day] = { opens: 0, replies: 0 };
     cursor.setDate(cursor.getDate() + 1);
@@ -262,7 +275,7 @@ export const getDashboardCampaigns = async (userId: string) => {
         ...campaign,
         metrics,
       };
-    })
+    }),
   );
 
   return campaignsWithMetrics;

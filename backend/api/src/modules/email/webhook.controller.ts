@@ -42,6 +42,46 @@ export const emailOpenWebhook = async (
   }
 };
 
+export const emailOpenPixel = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const querySchema = z.object({
+      email_id: z.string().uuid(),
+    });
+
+    const payload = querySchema.parse(req.query);
+
+    const email = await prisma.email.findUnique({
+      where: { id: payload.email_id },
+    });
+
+    // We record opens via our own tracking pixel, regardless of which ESP
+    // (e.g. Mailgun via SMTP) is used behind the scenes.
+    if (email) {
+      const openedAt = new Date();
+      await publish(EMAIL_OPENED, {
+        emailId: payload.email_id,
+        openedAt: openedAt.toISOString(),
+      });
+    }
+
+    const pixelBuffer = Buffer.from(
+      "R0lGODlhAQABAPAAAAAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==",
+      "base64"
+    );
+
+    res.setHeader("Content-Type", "image/gif");
+    res.setHeader("Content-Length", pixelBuffer.length.toString());
+
+    return res.status(200).end(pixelBuffer);
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const emailReplyWebhook = async (
   req: Request,
   res: Response,

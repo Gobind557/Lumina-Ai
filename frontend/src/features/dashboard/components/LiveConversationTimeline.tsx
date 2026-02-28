@@ -23,7 +23,9 @@ function formatSentAt(sentAt: Date | string | null): string {
 }
 
 export default function LiveConversationTimeline() {
-  const [activeTab, setActiveTab] = useState<"today" | "replies" | "closed">("today");
+  const [activeTab, setActiveTab] = useState<"today" | "replies" | "closed">(
+    "today",
+  );
   const { timeline, loading } = useDashboardTimeline(7);
 
   const chartData =
@@ -82,13 +84,19 @@ export default function LiveConversationTimeline() {
           <div className="h-6 w-48 bg-slate-200/60 rounded animate-pulse mb-4" />
           <div className="flex gap-2 mb-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-9 w-20 bg-slate-200/60 rounded-lg animate-pulse" />
+              <div
+                key={i}
+                className="h-9 w-20 bg-slate-200/60 rounded-lg animate-pulse"
+              />
             ))}
           </div>
           <div className="h-[250px] bg-slate-100/50 rounded-lg animate-pulse" />
           <div className="mt-4 space-y-2">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-12 bg-slate-200/60 rounded animate-pulse" />
+              <div
+                key={i}
+                className="h-12 bg-slate-200/60 rounded animate-pulse"
+              />
             ))}
           </div>
         </div>
@@ -101,7 +109,9 @@ export default function LiveConversationTimeline() {
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-slate-900">Live Conversation Timeline</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Live Conversation Timeline
+            </h3>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/15 border border-emerald-400/30 rounded-full">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-xs text-emerald-600 font-medium">LIVE</span>
@@ -172,7 +182,11 @@ export default function LiveConversationTimeline() {
                 />
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{ stroke: "#94a3b8", strokeWidth: 1, strokeDasharray: "5 5" }}
+                  cursor={{
+                    stroke: "#94a3b8",
+                    strokeWidth: 1,
+                    strokeDasharray: "5 5",
+                  }}
                 />
                 <Line
                   type="monotone"
@@ -182,7 +196,9 @@ export default function LiveConversationTimeline() {
                   strokeWidth={2}
                   dot={<CustomDot fill="#60a5fa" />}
                   activeDot={{ r: 6, fill: "#60a5fa" }}
-                  style={{ filter: "drop-shadow(0 4px 6px rgba(96, 165, 250, 0.3))" }}
+                  style={{
+                    filter: "drop-shadow(0 4px 6px rgba(96, 165, 250, 0.3))",
+                  }}
                 />
                 <Line
                   type="monotone"
@@ -192,7 +208,9 @@ export default function LiveConversationTimeline() {
                   strokeWidth={2}
                   dot={<CustomDot fill="#a78bfa" />}
                   activeDot={{ r: 6, fill: "#a78bfa" }}
-                  style={{ filter: "drop-shadow(0 4px 6px rgba(167, 139, 250, 0.3))" }}
+                  style={{
+                    filter: "drop-shadow(0 4px 6px rgba(167, 139, 250, 0.3))",
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>

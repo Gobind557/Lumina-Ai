@@ -7,6 +7,17 @@ import { EMAIL_SENT } from "./email.events";
 
 const connection = { connection: { url: env.REDIS_URL } };
 
+const buildTrackingPixelHtml = (emailId: string) => {
+  const pixelUrl = `${env.APP_URL}/webhooks/email/open-pixel?email_id=${encodeURIComponent(
+    emailId
+  )}`;
+
+  const pixelTag =
+    `<img src="${pixelUrl}" alt="" width="1" height="1" style="display:none;"/>`;
+
+  return pixelTag;
+};
+
 const worker = new Worker(
   "email-send",
   async (job) => {
@@ -15,11 +26,14 @@ const worker = new Worker(
     if (!email) return;
 
     try {
+      const trackingPixel = buildTrackingPixelHtml(emailId);
+      const htmlWithPixel = `${email.bodyHtml}${trackingPixel}`;
+
       const messageId = await sendEmailViaSmtp({
         from: email.fromEmail,
         to: email.toEmail,
         subject: email.subject,
-        html: email.bodyHtml,
+        html: htmlWithPixel,
         text: email.bodyText ?? undefined,
       });
 

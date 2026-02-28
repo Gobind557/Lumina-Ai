@@ -3,6 +3,7 @@ import { Layout } from '../shared/layout'
 import { Dashboard } from '../features/dashboard'
 import { EmailComposer } from '../features/email'
 import { Campaigns, CreateCampaign, CampaignDetail } from '../features/campaigns'
+import { Prospects } from '../features/prospects'
 import { Templates, CreateTemplate, EditTemplate } from '../features/templates'
 import { ROUTES } from '../shared/constants'
 import { Login, Signup } from '../features/auth'
@@ -64,6 +65,7 @@ export function AppRouter() {
           <Route path={ROUTES.DASHBOARD} element={<Dashboard />} />
           <Route path={ROUTES.COMPOSE} element={<EmailComposer />} />
           <Route path={ROUTES.CAMPAIGNS} element={<Campaigns />} />
+          <Route path={ROUTES.PROSPECTS} element={<Prospects />} />
           <Route path={ROUTES.CAMPAIGNS_NEW} element={<CreateCampaign />} />
           <Route path={ROUTES.CAMPAIGNS_VIEW} element={<CampaignDetail />} />
           <Route path={ROUTES.TEMPLATES} element={<Templates />} />

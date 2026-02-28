@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, Megaphone, FileText, MoreVertical, Mail } from "lucide-react";
+import { Home, Megaphone, FileText, MoreVertical, Mail, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { ROUTES } from "../constants";
 
 const navItems = [
   { path: ROUTES.DASHBOARD, icon: Home, label: "Dashboard" },
   { path: ROUTES.CAMPAIGNS, icon: Megaphone, label: "Campaigns" },
+  { path: ROUTES.PROSPECTS, icon: Users, label: "Prospects" },
   { path: ROUTES.TEMPLATES, icon: FileText, label: "Templates" },
 ];
 

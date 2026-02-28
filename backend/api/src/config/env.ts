@@ -24,7 +24,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().min(1),
   SMTP_PASS: z.string().min(1),
   SMTP_SECURE: z.coerce.boolean().default(false),
-  CORS_ORIGIN: z.string().default("http://localhost:5173")
+  CORS_ORIGIN: z.string().default("http://localhost:5173"),
+  APP_URL: z.string().default("http://localhost:4000"),
 });
 
 export type Env = z.infer<typeof envSchema>;

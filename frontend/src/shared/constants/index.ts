@@ -12,6 +12,7 @@ export const ROUTES = {
   TEMPLATES_NEW: '/templates/new',
   TEMPLATES_EDIT: '/templates/:id',
   COMPOSE: '/compose',
+  PROSPECTS: '/prospects',
 } as const
 
 export const EMAIL_STATUS = {
