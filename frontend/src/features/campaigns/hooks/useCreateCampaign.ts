@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { campaignsApi } from '../api/campaigns.api'
+import { campaignsApi, type CampaignStatus } from '../api/campaigns.api'
 
 export function useCreateCampaign() {
   const [loading, setLoading] = useState(false)
@@ -11,6 +11,7 @@ export function useCreateCampaign() {
     startDate?: string | null
     endDate?: string | null
     prospectIds?: string[]
+    status?: CampaignStatus
   }) => {
     try {
       setLoading(true)

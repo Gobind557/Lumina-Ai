@@ -60,7 +60,7 @@ export const create = async (
       return res.status(401).json({ error: "Unauthorized" });
     }
     const userId = req.user.id;
-    const { name, description, startDate, endDate, workspaceId, prospectIds } = req.body;
+    const { name, description, startDate, endDate, workspaceId, prospectIds, status } = req.body;
     const campaign = await createCampaign({
       userId,
       workspaceId: workspaceId ?? null,
@@ -69,6 +69,7 @@ export const create = async (
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       prospectIds: Array.isArray(prospectIds) ? prospectIds : undefined,
+      status: status || undefined,
     });
     res.status(201).json(campaign);
   } catch (error) {

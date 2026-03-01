@@ -3,7 +3,6 @@ import { Check, ChevronDown } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCreateCampaign } from '../hooks/useCreateCampaign'
-import { campaignsApi } from '../api/campaigns.api'
 import { useProspects } from '@/features/prospects/hooks/useProspects'
 
 const STEPS = [
@@ -67,8 +66,8 @@ export default function CreateCampaign() {
         name: campaignName.trim() || 'Untitled Campaign',
         description: null,
         prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
+        status: 'ACTIVE',
       })
-      await campaignsApi.updateStatus(campaign.id, 'ACTIVE')
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
       // error in createError

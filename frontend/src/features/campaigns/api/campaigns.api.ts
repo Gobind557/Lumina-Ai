@@ -75,6 +75,7 @@ export const campaignsApi = {
     endDate?: string | null
     workspaceId?: string | null
     prospectIds?: string[]
+    status?: CampaignStatus
   }): Promise<Campaign> => {
     return apiRequest<Campaign>(`${API_BASE}/campaigns`, {
       method: 'POST',

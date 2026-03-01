@@ -47,6 +47,9 @@ export const listCampaigns = async (params: {
   return { total, campaigns };
 };
 
+const CAMPAIGN_STATUSES = ["DRAFT", "ACTIVE", "PAUSED", "COMPLETED", "ARCHIVED"] as const;
+export type CampaignStatusType = (typeof CAMPAIGN_STATUSES)[number];
+
 export const createCampaign = async (payload: {
   userId: string;
   workspaceId?: string | null;
@@ -55,14 +58,18 @@ export const createCampaign = async (payload: {
   startDate?: Date | null;
   endDate?: Date | null;
   prospectIds?: string[];
+  status?: CampaignStatusType;
 }) => {
+  const status = payload.status && CAMPAIGN_STATUSES.includes(payload.status)
+    ? payload.status
+    : "DRAFT";
   const campaign = await prisma.campaign.create({
     data: {
       userId: payload.userId,
       workspaceId: payload.workspaceId ?? null,
       name: payload.name,
       description: payload.description ?? null,
-      status: "DRAFT",
+      status,
       startDate: payload.startDate ?? null,
       endDate: payload.endDate ?? null,
     },

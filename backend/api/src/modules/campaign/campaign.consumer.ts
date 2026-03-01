@@ -64,21 +64,20 @@ async function onEmailOpened(payload: EmailOpenedPayload): Promise<void> {
 }
 
 async function onEmailReplied(payload: EmailRepliedPayload): Promise<void> {
-  // High-value event: prospect engagement
-  // Future: Could mark prospect as "hot lead", advance to next sequence, or pause campaign
   const email = await prisma.email.findUnique({
     where: { id: payload.emailId },
     select: { campaignId: true, prospectId: true },
   });
 
-  if (!email?.campaignId) return;
+  if (!email?.campaignId || !email?.prospectId) return;
 
-  // Mark prospect as engaged (could add engagement flag to Prospect model)
-  // For now, reply is tracked via analytics
-
-  // Future: Implement sequence progression logic here
-  // e.g., if this is step 1 of 3, advance to step 2
-  // or if reply indicates interest, mark campaign as successful for this prospect
+  await prisma.campaignProspect.updateMany({
+    where: {
+      campaignId: email.campaignId,
+      prospectId: email.prospectId,
+    },
+    data: { status: "REPLIED" },
+  });
 }
 
 async function handle(event: DomainEvent): Promise<void> {
