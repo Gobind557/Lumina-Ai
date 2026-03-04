@@ -13,12 +13,15 @@ import {
 import { prisma } from "../../infrastructure/prisma";
 import { updateCampaignStatus } from "./campaign.service";
 
+/** Max steps per prospect before marking as COMPLETED (no scheduling yet). */
+const DEFAULT_MAX_CAMPAIGN_STEPS = 5;
+
 /**
  * Campaign engine consumer: reacts to email lifecycle events and progresses campaign state.
  * Implements campaign progression logic:
- * - EMAIL_SENT: Activates campaign if first email sent
+ * - EMAIL_SENT: Activates campaign if first email sent; increments CampaignProspect.currentStep; sets COMPLETED when currentStep >= max steps
  * - EMAIL_OPENED: Tracks engagement, may trigger follow-up sequences
- * - EMAIL_REPLIED: Marks prospect as engaged, may advance to next sequence step
+ * - EMAIL_REPLIED: Marks prospect as engaged (status = REPLIED)
  */
 async function onEmailQueued(payload: EmailQueuedPayload): Promise<void> {
   if (!payload.campaignId) return;
@@ -50,10 +53,30 @@ async function onEmailSent(payload: EmailSentPayload): Promise<void> {
     await updateCampaignStatus(payload.campaignId, payload.userId, "ACTIVE");
   }
 
-  // Check if campaign should be marked as COMPLETED
-  // (e.g., all emails in sequence sent, or end date reached)
+  // Check if campaign should be marked as COMPLETED (end date reached)
   if (campaign.endDate && new Date() >= campaign.endDate) {
     await updateCampaignStatus(payload.campaignId, payload.userId, "COMPLETED");
+  }
+
+  // Step tracking: increment currentStep for this prospect; set COMPLETED when max steps reached
+  if (payload.prospectId) {
+    const cp = await prisma.campaignProspect.findFirst({
+      where: {
+        campaignId: payload.campaignId,
+        prospectId: payload.prospectId,
+      },
+    });
+    if (cp) {
+      const newStep = cp.currentStep + 1;
+      const status =
+        newStep >= DEFAULT_MAX_CAMPAIGN_STEPS && cp.status === "ACTIVE"
+          ? "COMPLETED"
+          : cp.status;
+      await prisma.campaignProspect.update({
+        where: { id: cp.id },
+        data: { currentStep: newStep, status },
+      });
+    }
   }
 }
 

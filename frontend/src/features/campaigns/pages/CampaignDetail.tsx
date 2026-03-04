@@ -36,6 +36,15 @@ function statusToLabel(status: string): string {
   return map[status] ?? status
 }
 
+function prospectStatusToLabel(status: string): string {
+  const map: Record<string, string> = {
+    ACTIVE: 'Active',
+    REPLIED: 'Replied',
+    COMPLETED: 'Completed',
+  }
+  return map[status] ?? status
+}
+
 export default function CampaignDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -46,6 +55,15 @@ export default function CampaignDetail() {
   const totalProspects = prospects.length
   const activeCount = prospects.filter((p) => p.status === 'ACTIVE').length
   const repliedCount = prospects.filter((p) => p.status === 'REPLIED').length
+  const completedCount = prospects.filter((p) => p.status === 'COMPLETED').length
+  const replyRate =
+    totalProspects > 0 ? Math.round((repliedCount / totalProspects) * 100) : 0
+  const avgStep =
+    prospects.length > 0
+      ? prospects.reduce((s, p) => s + p.currentStep, 0) / prospects.length
+      : 0
+  const maxSteps = 5
+  const progressPct = Math.min(100, Math.round((avgStep / maxSteps) * 100))
   const [selectedStep, setSelectedStep] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'activity' | 'insights'>('activity')
   const [offerFilter, setOfferFilter] = useState('Offer prospects')
@@ -245,12 +263,14 @@ export default function CampaignDetail() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm text-slate-600">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-sm text-slate-600">
             {[
               { label: 'Total prospects', value: String(totalProspects) },
               { label: 'Active', value: String(activeCount) },
               { label: 'Replied', value: String(repliedCount) },
-              { label: 'Open Rate', value: '—' },
+              { label: 'Completed', value: String(completedCount) },
+              { label: 'Reply rate', value: `${replyRate}%` },
+              { label: 'Progress', value: `${progressPct}%` },
             ].map((metric) => (
               <div key={metric.label} className="rounded-xl bg-white/70 border border-slate-200/70 p-3">
                 <p className="text-[11px] text-slate-500">{metric.label}</p>
@@ -405,7 +425,7 @@ export default function CampaignDetail() {
                         <span>{prospect.name || prospect.email}</span>
                       </div>
                       <span className="text-slate-500">
-                        {prospect.status} · Step {prospect.currentStep}
+                        {prospectStatusToLabel(prospect.status)} · Step {prospect.currentStep}
                       </span>
                     </div>
                   ))}

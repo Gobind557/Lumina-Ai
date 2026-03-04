@@ -34,7 +34,7 @@ export interface Campaign {
   metrics?: CampaignMetrics
 }
 
-export type CampaignProspectStatus = 'ACTIVE' | 'REPLIED'
+export type CampaignProspectStatus = 'ACTIVE' | 'REPLIED' | 'COMPLETED'
 
 export interface CampaignProspectItem {
   prospectId: string
