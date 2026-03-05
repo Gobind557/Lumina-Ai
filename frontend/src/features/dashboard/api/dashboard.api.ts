@@ -72,6 +72,28 @@ export interface CampaignSummary {
   }
 }
 
+export interface BestTimeData {
+  bestDayOfWeek: number
+  bestHour: number
+  liftPercent: number
+  sampleSize: number
+}
+
+export interface NextAction {
+  prospectId: string | null
+  name: string
+  action: string
+  actionType: "follow-up" | "call" | "personalization"
+  probability?: number
+  actionLabel: string
+  buttonLabel?: string
+  reasoning?: string
+}
+
+export interface NextActionsData {
+  actions: NextAction[]
+}
+
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
     return apiRequest<DashboardStats>(`${API_BASE}/dashboard/stats`)
@@ -87,5 +109,13 @@ export const dashboardApi = {
 
   getCampaigns: async (): Promise<CampaignSummary[]> => {
     return apiRequest<CampaignSummary[]>(`${API_BASE}/dashboard/campaigns`)
+  },
+
+  getBestTime: async (): Promise<BestTimeData> => {
+    return apiRequest<BestTimeData>(`${API_BASE}/dashboard/best-time`)
+  },
+
+  getNextActions: async (): Promise<NextActionsData> => {
+    return apiRequest<NextActionsData>(`${API_BASE}/dashboard/next-actions`)
   },
 }

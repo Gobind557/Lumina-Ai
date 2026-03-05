@@ -1,88 +1,73 @@
 import { Clock } from "lucide-react";
+import { useDashboardBestTime } from "../hooks/useDashboard";
 
-interface BestTimeActivity {
-  name: string;
-  title: string;
-  description: string;
-  action: string;
-  actionLabel: string;
+const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function formatBestTime(bestDayOfWeek: number, bestHour: number): string {
+  const day =
+    dayLabels[bestDayOfWeek] ??
+    new Date().toLocaleDateString(undefined, { weekday: "short" });
+  const hour = bestHour ?? 9;
+  const date = new Date();
+  date.setHours(hour, 0, 0, 0);
+  return `${day} ${date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
 }
 
-const activities: BestTimeActivity[] = [
-  {
-    name: "Emily Wong",
-    title: "Hgp indere",
-    description: "Repp Rads anve propvet.d yesterday",
-    action: "follow-up",
-    actionLabel: "Follow Up",
-  },
-  {
-    name: "James Carter",
-    title: "Hoodaze yourseff",
-    description: "Repe up besichgrea",
-    action: "send-intro",
-    actionLabel: "Send Intro",
-  },
-];
-
-const getInitials = (name: string) => {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-};
-
-// Best time to send: no backend endpoint yet; uses static recommendations. See DASHBOARD_REALTIME_PLAN.md.
 export default function BestTimeCard() {
+  const { bestTime, loading } = useDashboardBestTime();
+
+  const hasData = !!bestTime && bestTime.sampleSize > 0;
+  const label = hasData
+    ? formatBestTime(bestTime.bestDayOfWeek, bestTime.bestHour)
+    : "Not enough data";
+  const liftText =
+    hasData && bestTime.liftPercent !== 0
+      ? `+ ${bestTime.liftPercent}%`
+      : undefined;
+
   return (
     <div className="glass-card p-6 relative overflow-hidden h-full min-h-0 min-w-0 flex flex-col">
       <div className="relative z-10 flex flex-col h-full min-h-0">
-        {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <h3 className="text-lg font-semibold text-slate-900">Best Time</h3>
         </div>
 
-        {/* Summary */}
         <div className="mb-4 p-3 bg-white/80 rounded-lg border border-slate-200/70 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-indigo-500" />
-            <span className="text-sm font-semibold text-slate-900">
-              Tue 9am
-            </span>
-          </div>
-          <span className="text-xs text-emerald-600 mb-1 block">+ 32.6%</span>
-          <p className="text-xs text-slate-500 mt-2">
-            Based on 124 emails sent in the last 14 days
-          </p>
+          {loading ? (
+            <div className="space-y-2 animate-pulse">
+              <div className="h-4 w-24 bg-slate-200/80 rounded" />
+              <div className="h-3 w-16 bg-slate-200/80 rounded" />
+              <div className="h-3 w-40 bg-slate-200/80 rounded" />
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-indigo-500" />
+                <span className="text-sm font-semibold text-slate-900">
+                  {label}
+                </span>
+              </div>
+              {liftText && (
+                <span className="text-xs text-emerald-600 mb-1 block">
+                  {liftText}
+                </span>
+              )}
+              <p className="text-xs text-slate-500 mt-2">
+                {hasData
+                  ? `Based on ${bestTime.sampleSize} emails sent in the last 14 days`
+                  : "We’ll recommend a best send time once you’ve sent more emails."}
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Activities List - scrollable */}
-        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto overflow-x-hidden">
-          {activities.map((activity, index) => (
-            <div key={index} className="flex items-start gap-3">
-              {/* Avatar */}
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white text-sm font-semibold">
-                {getInitials(activity.name)}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-slate-900">
-                    {activity.name}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 mb-1">{activity.title}</p>
-                <p className="text-xs text-slate-400 mb-2">
-                  {activity.description}
-                </p>
-                <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors">
-                  {activity.actionLabel}
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="flex-1 min-h-0 flex items-center justify-center text-xs text-slate-400">
+          {!loading && !hasData && (
+            <span>Start sending campaigns to unlock timing insights.</span>
+          )}
         </div>
       </div>
     </div>

@@ -6,7 +6,6 @@ export const getDashboardStats = async (userId: string) => {
   const todayStart = new Date(now.setHours(0, 0, 0, 0));
   const weekStart = new Date(now.setDate(now.getDate() - 7));
 
-  // Get email counts
   const [totalEmails, todayEmails, weekEmails] = await Promise.all([
     prisma.email.count({ where: { userId, status: "SENT" } }),
     prisma.email.count({
@@ -17,7 +16,6 @@ export const getDashboardStats = async (userId: string) => {
     }),
   ]);
 
-  // Get open/reply counts
   const sentEmailIds = await prisma.email
     .findMany({
       where: { userId, status: "SENT" },
@@ -29,7 +27,8 @@ export const getDashboardStats = async (userId: string) => {
     await Promise.all([
       prisma.emailOpenEvent.count({ where: { emailId: { in: sentEmailIds } } }),
       prisma.emailReplyEvent.count({
-        where: { emailId: { in: sentEmailIds } },
+        where: { emailId: { in: sentEmailIds },
+        },
       }),
       prisma.emailOpenEvent.count({
         where: {
@@ -45,13 +44,11 @@ export const getDashboardStats = async (userId: string) => {
       }),
     ]);
 
-  // Calculate rates
   const openRate =
     totalEmails > 0 ? Math.round((totalOpens / totalEmails) * 100) : 0;
   const replyRate =
     totalEmails > 0 ? Math.round((totalReplies / totalEmails) * 100) : 0;
 
-  // Get active campaigns
   const activeCampaigns = await prisma.campaign.count({
     where: { userId, status: "ACTIVE" },
   });
@@ -84,8 +81,6 @@ export const getDashboardTimeline = async (
 
   const endDate = new Date();
 
-  // Timeline: count opens and replies that *occurred* in the last N days (by openedAt/repliedAt),
-  // for any of the user's emails, so the graph matches readiness/momentum and shows recent activity.
   const [opens, replies, emails] = await Promise.all([
     prisma.emailOpenEvent.findMany({
       where: {
@@ -124,7 +119,6 @@ export const getDashboardTimeline = async (
     }),
   ]);
 
-  // Group by day: include every day in range so opens/replies show on the day they occurred
   const timeline: Record<string, { opens: number; replies: number }> = {};
   const cursor = new Date(startDate);
   cursor.setHours(0, 0, 0, 0);
@@ -236,7 +230,7 @@ export const getDashboardMomentum = async (userId: string) => {
       activity: `Opened: ${open.email.subject || "email"}`,
       time: formatTimeAgo(open.openedAt),
       minutesAgo: Math.floor((Date.now() - open.openedAt.getTime()) / 60000),
-      isHot: Date.now() - open.openedAt.getTime() < 10 * 60 * 1000, // Last 10 minutes
+      isHot: Date.now() - open.openedAt.getTime() < 10 * 60 * 1000,
     })),
     replies: recentReplies.map((reply) => ({
       id: reply.id,
@@ -245,7 +239,7 @@ export const getDashboardMomentum = async (userId: string) => {
       activity: `Replied: ${reply.replySubject || "email"}`,
       time: formatTimeAgo(reply.repliedAt),
       minutesAgo: Math.floor((Date.now() - reply.repliedAt.getTime()) / 60000),
-      isHot: true, // Replies are always hot
+      isHot: true,
     })),
   };
 };
@@ -279,4 +273,234 @@ export const getDashboardCampaigns = async (userId: string) => {
   );
 
   return campaignsWithMetrics;
+};
+
+export const getDashboardBestTime = async (userId: string) => {
+  const lookbackDays = 14;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - lookbackDays);
+  startDate.setHours(0, 0, 0, 0);
+
+  const events = await Promise.all([
+    prisma.emailOpenEvent.findMany({
+      where: {
+        email: { userId },
+        openedAt: { gte: startDate },
+      },
+      select: {
+        openedAt: true,
+        emailId: true,
+      },
+    }),
+    prisma.emailReplyEvent.findMany({
+      where: {
+        email: { userId },
+        repliedAt: { gte: startDate },
+      },
+      select: {
+        repliedAt: true,
+        emailId: true,
+      },
+    }),
+  ]);
+
+  const [opens, replies] = events;
+
+  if (opens.length === 0 && replies.length === 0) {
+    return {
+      bestDayOfWeek: 0,
+      bestHour: 9,
+      liftPercent: 0,
+      sampleSize: 0,
+    };
+  }
+
+  type BucketKey = string;
+  const buckets: Record<
+    BucketKey,
+    { emails: Set<string>; opens: number; replies: number; dayOfWeek: number; hour: number }
+  > = {};
+
+  const addEventToBucket = (date: Date, emailId: string, isReply: boolean) => {
+    const local = new Date(date);
+    const dayOfWeek = local.getDay();
+    const hour = local.getHours();
+    const key = `${dayOfWeek}-${hour}`;
+    if (!buckets[key]) {
+      buckets[key] = {
+        emails: new Set<string>(),
+        opens: 0,
+        replies: 0,
+        dayOfWeek,
+        hour,
+      };
+    }
+    buckets[key].emails.add(emailId);
+    if (isReply) {
+      buckets[key].replies += 1;
+    } else {
+      buckets[key].opens += 1;
+    }
+  };
+
+  opens.forEach((open) => addEventToBucket(open.openedAt, open.emailId, false));
+  replies.forEach((reply) =>
+    addEventToBucket(reply.repliedAt, reply.emailId, true),
+  );
+
+  let totalEmails = 0;
+  let totalScore = 0;
+
+  const bucketEntries = Object.values(buckets).map((bucket) => {
+    const sentCount = bucket.emails.size;
+    const openRate = sentCount > 0 ? bucket.opens / sentCount : 0;
+    const replyRate = sentCount > 0 ? bucket.replies / sentCount : 0;
+    const score = openRate * 0.6 + replyRate * 0.4;
+    totalEmails += sentCount;
+    totalScore += score;
+    return {
+      ...bucket,
+      sentCount,
+      score,
+    };
+  });
+
+  if (bucketEntries.length === 0 || totalEmails === 0) {
+    return {
+      bestDayOfWeek: 0,
+      bestHour: 9,
+      liftPercent: 0,
+      sampleSize: 0,
+    };
+  }
+
+  const averageScore = totalScore / bucketEntries.length;
+  const bestBucket = bucketEntries.reduce((best, current) =>
+    current.score > best.score ? current : best,
+  );
+
+  const liftPercent =
+    averageScore > 0 ? ((bestBucket.score - averageScore) / averageScore) * 100 : 0;
+
+  return {
+    bestDayOfWeek: bestBucket.dayOfWeek,
+    bestHour: bestBucket.hour,
+    liftPercent: Math.round(liftPercent * 10) / 10,
+    sampleSize: totalEmails,
+  };
+};
+
+export const getDashboardNextActions = async (userId: string) => {
+  const lookbackMinutes = 60 * 24 * 3;
+  const cutoff = new Date(Date.now() - lookbackMinutes * 60 * 1000);
+
+  const [recentReplies, recentOpens] = await Promise.all([
+    prisma.emailReplyEvent.findMany({
+      where: {
+        email: {
+          userId,
+        },
+        repliedAt: { gte: cutoff },
+      },
+      include: {
+        email: {
+          select: {
+            id: true,
+            subject: true,
+            toEmail: true,
+            prospect: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { repliedAt: "desc" },
+      take: 10,
+    }),
+    prisma.emailOpenEvent.findMany({
+      where: {
+        email: {
+          userId,
+        },
+        openedAt: { gte: cutoff },
+      },
+      include: {
+        email: {
+          select: {
+            id: true,
+            subject: true,
+            toEmail: true,
+            prospect: {
+              select: {
+                firstName: true,
+                lastName: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { openedAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  const seenEmailIds = new Set<string>();
+  const actions: Array<{
+    prospectId: string | null;
+    name: string;
+    action: string;
+    actionType: "follow-up" | "call" | "personalization";
+    probability?: number;
+    actionLabel: string;
+    buttonLabel?: string;
+    reasoning?: string;
+  }> = [];
+
+  recentReplies.forEach((reply) => {
+    if (seenEmailIds.has(reply.email.id)) return;
+    seenEmailIds.add(reply.email.id);
+    const name =
+      (reply.email.prospect
+        ? `${reply.email.prospect.firstName || ""} ${
+            reply.email.prospect.lastName || ""
+          }`.trim()
+        : reply.email.toEmail) || reply.email.toEmail;
+    actions.push({
+      prospectId: null,
+      name,
+      action: "Follow up on reply",
+      actionType: "call",
+      probability: 65,
+      actionLabel: "Call now",
+      reasoning: "Replied recently · high intent",
+    });
+  });
+
+  recentOpens.forEach((open) => {
+    if (seenEmailIds.has(open.email.id)) return;
+    seenEmailIds.add(open.email.id);
+    const name =
+      (open.email.prospect
+        ? `${open.email.prospect.firstName || ""} ${
+            open.email.prospect.lastName || ""
+          }`.trim()
+        : open.email.toEmail) || open.email.toEmail;
+    actions.push({
+      prospectId: null,
+      name,
+      action: "Follow up",
+      actionType: "follow-up",
+      probability: 40,
+      actionLabel: "Send follow-up",
+      buttonLabel: "40%",
+      reasoning: "Opened recently · no reply yet",
+    });
+  });
+
+  return {
+    actions: actions.slice(0, 10),
+  };
 };

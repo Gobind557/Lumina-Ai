@@ -4,6 +4,8 @@ import {
   getTimeline,
   getMomentum,
   getCampaigns,
+  getBestTime,
+  getNextActions,
 } from "./dashboard.controller";
 import { authMiddleware } from "../../shared/middleware/auth.middleware";
 
@@ -14,3 +16,5 @@ dashboardRoutes.get("/stats", getStats);
 dashboardRoutes.get("/timeline", getTimeline);
 dashboardRoutes.get("/momentum", getMomentum);
 dashboardRoutes.get("/campaigns", getCampaigns);
+dashboardRoutes.get("/best-time", getBestTime);
+dashboardRoutes.get("/next-actions", getNextActions);

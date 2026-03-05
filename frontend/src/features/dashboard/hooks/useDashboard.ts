@@ -1,5 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { dashboardApi, type DashboardStats, type TimelineData, type MomentumData, type CampaignSummary } from '../api/dashboard.api'
+import {
+  dashboardApi,
+  type DashboardStats,
+  type TimelineData,
+  type MomentumData,
+  type CampaignSummary,
+  type BestTimeData,
+  type NextActionsData,
+} from '../api/dashboard.api'
 
 const REFETCH_STATS_MS = 30_000
 const REFETCH_MOMENTUM_MS = 15_000
@@ -38,4 +46,27 @@ export function useDashboardCampaigns() {
     refetchInterval: REFETCH_STATS_MS,
   })
   return { campaigns, loading, error: error ?? null }
+}
+
+export function useDashboardBestTime() {
+  const { data, isLoading: loading, error } = useQuery<BestTimeData>({
+    queryKey: ['dashboard', 'best-time'],
+    queryFn: () => dashboardApi.getBestTime(),
+    refetchInterval: REFETCH_STATS_MS,
+  })
+  return { bestTime: data ?? null, loading, error: error ?? null }
+}
+
+export function useDashboardNextActions() {
+  const { data, isLoading: loading, error } = useQuery<NextActionsData>({
+    queryKey: ['dashboard', 'next-actions'],
+    queryFn: () => dashboardApi.getNextActions(),
+    refetchInterval: REFETCH_MOMENTUM_MS,
+  })
+
+  return {
+    nextActions: data?.actions ?? [],
+    loading,
+    error: error ?? null,
+  }
 }

@@ -89,8 +89,8 @@ export default function LiveConversationTimeline() {
 
   if (loading) {
     return (
-      <div className="glass-card p-6 relative overflow-hidden">
-        <div className="relative z-10">
+      <div className="glass-card p-6 relative overflow-hidden h-full min-h-0 flex flex-col">
+        <div className="relative z-10 h-full min-h-0 flex flex-col">
           <div className="h-6 w-48 bg-slate-200/60 rounded animate-pulse mb-4" />
           <div className="flex gap-2 mb-6">
             {[1, 2, 3].map((i) => (
@@ -100,7 +100,7 @@ export default function LiveConversationTimeline() {
               />
             ))}
           </div>
-          <div className="h-[250px] bg-slate-100/50 rounded-lg animate-pulse" />
+          <div className="h-[220px] lg:flex-1 lg:min-h-[150px] bg-slate-100/50 rounded-lg animate-pulse" />
           <div className="mt-4 space-y-2">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -115,9 +115,9 @@ export default function LiveConversationTimeline() {
   }
 
   return (
-    <div className="glass-card p-6 relative overflow-hidden">
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
+    <div className="glass-card p-6 relative overflow-hidden h-full min-h-0 flex flex-col">
+      <div className="relative z-10 h-full min-h-0 flex flex-col">
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-lg font-semibold text-slate-900">
               Live Conversation Timeline
@@ -129,7 +129,7 @@ export default function LiveConversationTimeline() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-3 lg:mb-4">
           <button
             onClick={() => setActiveTab("today")}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -165,7 +165,7 @@ export default function LiveConversationTimeline() {
         </div>
 
         {chartData.length > 0 ? (
-          <div className="relative" style={{ height: "250px" }}>
+          <div className="relative h-[190px] lg:flex-1 lg:min-h-[130px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={chartData}
@@ -226,7 +226,7 @@ export default function LiveConversationTimeline() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[250px] flex items-center justify-center text-sm text-slate-500 rounded-lg bg-slate-50/50">
+          <div className="h-[190px] lg:flex-1 lg:min-h-[130px] flex items-center justify-center text-sm text-slate-500 rounded-lg bg-slate-50/50">
             No timeline data for the last 7 days
           </div>
         )}

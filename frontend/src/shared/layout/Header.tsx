@@ -1,13 +1,34 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, MoreVertical, ChevronDown, LogOut } from "lucide-react";
+import {
+  Search,
+  Bell,
+  MoreVertical,
+  ChevronDown,
+  LogOut,
+} from "lucide-react";
 import { ROUTES } from "../constants";
 import { useDashboardFilters } from "../context/DashboardFilterContext";
+import { useDashboardNextActions } from "../../features/dashboard/hooks/useDashboard";
 
 export default function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const { weekOffset, setWeekOffset } = useDashboardFilters();
+  const { nextActions, loading: actionsLoading } = useDashboardNextActions();
+
+  const hotLeads = actionsLoading
+    ? 0
+    : nextActions.filter((action) => (action.probability ?? 0) >= 60).length;
+  const warmLeads = actionsLoading
+    ? 0
+    : nextActions.filter(
+        (action) =>
+          (action.probability ?? 0) >= 40 && (action.probability ?? 0) < 60,
+      ).length;
+  const atRiskLeads = actionsLoading
+    ? 0
+    : nextActions.filter((action) => (action.probability ?? 0) < 40).length;
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
@@ -31,16 +52,27 @@ export default function Header() {
 
         {/* Today's Focus */}
         <div className="flex items-center gap-4 flex-1">
-          <span className="text-sm text-slate-600 whitespace-nowrap">Today's Focus:</span>
+          <span className="text-sm text-slate-600 whitespace-nowrap">
+            Today&apos;s Focus:
+          </span>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-900 flex items-center gap-1">
-              🔥 <span className="font-semibold">2 Hot Leads</span>
+              🔥{" "}
+              <span className="font-semibold">
+                {actionsLoading ? "…" : hotLeads} Hot Leads
+              </span>
             </span>
             <span className="text-sm text-slate-900 flex items-center gap-1">
-              🟡 <span className="font-semibold">3 Warm</span>
+              🟡{" "}
+              <span className="font-semibold">
+                {actionsLoading ? "…" : warmLeads} Warm
+              </span>
             </span>
             <span className="text-sm text-slate-900 flex items-center gap-1">
-              🔴 <span className="font-semibold">1 At Risk</span>
+              🔴{" "}
+              <span className="font-semibold">
+                {actionsLoading ? "…" : atRiskLeads} At Risk
+              </span>
             </span>
           </div>
         </div>

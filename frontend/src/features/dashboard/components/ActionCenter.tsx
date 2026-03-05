@@ -15,12 +15,12 @@ export default function ActionCenter() {
 
   if (loading) {
     return (
-      <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
+      <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-5 lg:p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)] h-full min-h-0 flex flex-col">
         <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
-        <div className="relative z-10 flex flex-col items-center">
-          <div className="h-5 w-32 bg-slate-200/60 rounded animate-pulse mb-6" />
-          <div className="w-[140px] h-[140px] rounded-full bg-slate-200/60 animate-pulse mb-6" />
-          <div className="h-4 w-48 bg-slate-200/60 rounded animate-pulse mb-6" />
+        <div className="relative z-10 flex flex-col items-center h-full min-h-0">
+          <div className="h-5 w-32 bg-slate-200/60 rounded animate-pulse mb-4 lg:mb-6" />
+          <div className="w-[124px] h-[124px] lg:w-[140px] lg:h-[140px] rounded-full bg-slate-200/60 animate-pulse mb-4 lg:mb-6" />
+          <div className="h-4 w-48 bg-slate-200/60 rounded animate-pulse mb-4 lg:mb-6" />
           <div className="w-full space-y-3">
             <div className="h-4 w-full bg-slate-200/60 rounded animate-pulse" />
             <div className="h-4 w-full bg-slate-200/60 rounded animate-pulse" />
@@ -31,14 +31,14 @@ export default function ActionCenter() {
   }
 
   return (
-    <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
+    <div className="bg-white/75 backdrop-blur-2xl border border-white/60 rounded-2xl p-5 lg:p-6 relative overflow-hidden shadow-[0_20px_60px_rgba(15,23,42,0.12)] h-full min-h-0 flex flex-col">
       <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
       <div className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-indigo-400/15 blur-2xl pointer-events-none" />
       <div className="absolute left-6 top-0 h-px w-2/3 bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
-      <div className="relative z-10 flex flex-col items-center">
-        <h3 className="text-lg font-semibold text-slate-900 mb-6 w-full text-left">Action Center</h3>
+      <div className="relative z-10 flex flex-col items-center h-full min-h-0">
+        <h3 className="text-lg font-semibold text-slate-900 mb-4 lg:mb-6 w-full text-left">Action Center</h3>
 
-        <div className="relative mb-6" style={{ width: 140, height: 140 }}>
+        <div className="relative mb-4 lg:mb-6 w-[124px] h-[124px] lg:w-[140px] lg:h-[140px]">
           <CircularProgressbar
             value={readiness}
             strokeWidth={10}
@@ -52,13 +52,13 @@ export default function ActionCenter() {
           />
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <div className="flex items-center gap-1.5 mb-1">
-              <span className="text-2xl font-bold text-slate-900">{readiness}%</span>
+              <span className="text-xl lg:text-2xl font-bold text-slate-900">{readiness}%</span>
             </div>
             <span className="text-xs text-slate-500">Readiness</span>
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 mb-6 text-center">
+        <p className="text-sm text-slate-600 mb-4 lg:mb-6 text-center">
           {readiness >= 50
             ? "Your emails today are ready to send"
             : "Keep sending to improve engagement"}
