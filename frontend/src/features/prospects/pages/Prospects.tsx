@@ -1,23 +1,30 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   Plus,
   Search,
   ChevronDown,
   Download,
-  MoreHorizontal,
   Building2,
   FileText,
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
+  MoreHorizontal,
+  X,
 } from 'lucide-react'
 import type { ProspectApi } from '../api/prospects.api'
 import { useProspects } from '../hooks/useProspects'
 import { useCreateProspect } from '../hooks/useCreateProspect'
+import { useUpdateProspect } from '../hooks/useUpdateProspect'
 
 const PER_PAGE_OPTIONS = [8, 16, 24, 48]
 const STATUS_OPTIONS = ['Active', 'Pending', 'Replied'] as const
 const SEQUENCE_OPTIONS = ['Startup Cold Outreach', 'Enterprise Follow-up', 'Re-engagement']
+const TAGS = [
+  { id: 'hot', label: 'Hot Leads', count: 32, variant: 'red' as const },
+  { id: 'ent', label: 'Enterprise', count: 18, variant: 'purple' as const },
+  { id: 'startup', label: 'Startup', count: 45, variant: 'purple' as const },
+]
 
 // Derive display fields from API prospect (backend may not have status/sequence/step yet)
 function getDisplayStatus(index: number): (typeof STATUS_OPTIONS)[number] {
@@ -59,18 +66,25 @@ function getFullName(p: ProspectApi): string {
   return parts.length ? parts.join(' ') : p.email
 }
 
-const TAGS = [
-  { id: 'hot', label: 'Hot Leads', count: 32, variant: 'red' as const },
-  { id: 'ent', label: 'Enterprise', count: 18, variant: 'purple' as const },
-  { id: 'startup', label: 'Startup', count: 45, variant: 'purple' as const },
-]
+const SEARCH_DEBOUNCE_MS = 300
 
 export default function Prospects() {
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [searchInput, setSearchInput] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [filterOpen, setFilterOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [rowMenuOpenId, setRowMenuOpenId] = useState<string | null>(null)
+  const [detailsProspect, setDetailsProspect] = useState<ProspectApi | null>(null)
+  const [editProspect, setEditProspect] = useState<ProspectApi | null>(null)
+  const [editForm, setEditForm] = useState({
+    fullName: '',
+    workEmail: '',
+    company: '',
+    jobTitle: '',
+  })
   const [addForm, setAddForm] = useState({
     fullName: '',
     workEmail: '',
@@ -86,23 +100,56 @@ export default function Prospects() {
     pageSize,
     setPage,
     setSearch,
-    search,
     loading,
     error,
     refetch,
     resetToFirstPage,
-  } = useProspects(searchInput)
+  } = useProspects()
 
   const { create, loading: creating, error: createError } = useCreateProspect(() => {
     setAddForm({ fullName: '', workEmail: '', company: '', jobTitle: '', sequence: '' })
     refetch()
   })
 
-  // Debounce search
+  const { update, loading: updating, error: updateError } = useUpdateProspect(() => {
+    setEditProspect(null)
+    refetch()
+  })
+
   useEffect(() => {
-    const t = setTimeout(() => setSearch(searchInput), 300)
-    return () => clearTimeout(t)
-  }, [searchInput, setSearch])
+    if (!editProspect) return
+    const fullName = [editProspect.first_name, editProspect.last_name].filter(Boolean).join(' ')
+    setEditForm({
+      fullName,
+      workEmail: editProspect.email,
+      company: editProspect.company ?? '',
+      jobTitle: editProspect.job_title ?? '',
+    })
+  }, [editProspect])
+
+  const handleSaveEdit = useCallback(async () => {
+    if (!editProspect) return
+    const [first, ...rest] = editForm.fullName.trim().split(/\s+/)
+    const last = rest.join(' ') || undefined
+    if (!editForm.workEmail.trim()) return
+    await update(editProspect.id, {
+      email: editForm.workEmail.trim(),
+      first_name: first || null,
+      last_name: last || null,
+      company: editForm.company.trim() || null,
+      job_title: editForm.jobTitle.trim() || null,
+    })
+  }, [editProspect, editForm, update])
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchInput(value)
+      resetToFirstPage()
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+      searchDebounceRef.current = setTimeout(() => setSearch(value), SEARCH_DEBOUNCE_MS)
+    },
+    [setSearch, resetToFirstPage],
+  )
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const start = total === 0 ? 0 : page * pageSize + 1
@@ -145,23 +192,17 @@ export default function Prospects() {
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Top action bar */}
           <div className="shrink-0 flex items-center gap-3 p-4 bg-white border-b border-slate-200/80">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] text-white text-sm font-medium shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Prospect
-            </button>
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type="text"
-                placeholder="Search by name, company, email..."
+                ref={searchInputRef}
+                type="search"
+                autoComplete="off"
+                placeholder="Search prospects..."
                 value={searchInput}
                 onChange={(e) => {
-                  setSearchInput(e.target.value)
-                  resetToFirstPage()
+                  if (document.activeElement !== searchInputRef.current) return
+                  handleSearchChange(e.target.value)
                 }}
                 className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
               />
@@ -170,11 +211,34 @@ export default function Prospects() {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setFilterOpen((o) => !o)}
+                  onClick={() => {
+                    setFilterOpen((o) => !o)
+                    setActionsOpen(false)
+                  }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium shadow-sm hover:bg-slate-50"
                 >
                   Filter <ChevronDown className="w-4 h-4" />
                 </button>
+                {filterOpen && (
+                  <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 z-20 text-xs">
+                    <div className="px-3 py-2 border-b border-slate-100 font-semibold text-slate-900">
+                      Quick filters
+                    </div>
+                    <div className="px-3 py-2 space-y-2 text-slate-700">
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
+                        Hot leads only
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
+                        Has an active sequence
+                      </label>
+                      <p className="text-[11px] text-slate-500">
+                        This panel is UI-only for now — plug in real filters when your API supports them.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
               <button
                 type="button"
@@ -186,11 +250,34 @@ export default function Prospects() {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setActionsOpen((o) => !o)}
+                  onClick={() => {
+                    setActionsOpen((o) => !o)
+                    setFilterOpen(false)
+                  }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium shadow-sm hover:bg-slate-50"
                 >
                   Actions <ChevronDown className="w-4 h-4" />
                 </button>
+                {actionsOpen && (
+                  <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 z-20 text-xs">
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                    >
+                      Add to sequence (coming soon)
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                    >
+                      Export selected (coming soon)
+                    </button>
+                    <div className="px-3 py-2 border-t border-slate-100 text-[11px] text-slate-500">
+                      These bulk actions are placeholders so the menu feels
+                      responsive. Hook them up to real mutations when ready.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -332,12 +419,45 @@ export default function Prospects() {
                           {formatLastAction(p.updated_at)}
                         </td>
                         <td className="py-3 pr-4">
-                          <button
-                            type="button"
-                            className="p-1 rounded hover:bg-slate-200 text-slate-500"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </button>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              className="p-1 rounded hover:bg-slate-200 text-slate-500"
+                              onClick={() =>
+                                setRowMenuOpenId((current) =>
+                                  current === p.id ? null : p.id,
+                                )
+                              }
+                              aria-haspopup="true"
+                              aria-expanded={rowMenuOpenId === p.id}
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                            {rowMenuOpenId === p.id && (
+                              <div className="absolute right-0 mt-1 w-40 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 text-xs z-20">
+                                <button
+                                  type="button"
+                                  className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                                  onClick={() => {
+                                    setEditProspect(p)
+                                    setRowMenuOpenId(null)
+                                  }}
+                                >
+                                  Edit prospect
+                                </button>
+                                <button
+                                  type="button"
+                                  className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                                  onClick={() => {
+                                    setDetailsProspect(p)
+                                    setRowMenuOpenId(null)
+                                  }}
+                                >
+                                  View details
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )
@@ -417,7 +537,7 @@ export default function Prospects() {
         {sidebarOpen && (
           <aside className="w-80 shrink-0 flex flex-col bg-slate-100/90 border-l border-slate-200 overflow-hidden">
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Add Prospect */}
+              {/* Add Prospect — autocomplete off so typing here never affects the table search */}
               <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                   <h3 className="text-sm font-semibold text-slate-900">Add Prospect</h3>
@@ -433,29 +553,41 @@ export default function Prospects() {
                   <input
                     type="text"
                     placeholder="Full Name"
+                    autoComplete="off"
                     value={addForm.fullName}
-                    onChange={(e) => setAddForm((f) => ({ ...f, fullName: e.target.value }))}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, fullName: e.target.value }))
+                    }
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                   />
                   <input
                     type="email"
                     placeholder="Work Email"
                     value={addForm.workEmail}
-                    onChange={(e) => setAddForm((f) => ({ ...f, workEmail: e.target.value }))}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, workEmail: e.target.value }))
+                    }
+                    autoComplete="off"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                   />
                   <input
                     type="text"
                     placeholder="Company"
                     value={addForm.company}
-                    onChange={(e) => setAddForm((f) => ({ ...f, company: e.target.value }))}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, company: e.target.value }))
+                    }
+                    autoComplete="off"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                   />
                   <input
                     type="text"
                     placeholder="Job Title"
                     value={addForm.jobTitle}
-                    onChange={(e) => setAddForm((f) => ({ ...f, jobTitle: e.target.value }))}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, jobTitle: e.target.value }))
+                    }
+                    autoComplete="off"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                   />
                   <div className="relative">
@@ -493,7 +625,10 @@ export default function Prospects() {
               <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
                   <h3 className="text-sm font-semibold text-slate-900">Tags</h3>
-                  <button type="button" className="p-1 rounded text-slate-400 hover:text-slate-600">
+                  <button
+                    type="button"
+                    className="p-1 rounded text-slate-400 hover:text-slate-600"
+                  >
                     <MoreHorizontal className="w-4 h-4" />
                   </button>
                 </div>
@@ -522,6 +657,154 @@ export default function Prospects() {
               </section>
             </div>
           </aside>
+        )}
+
+        {/* View details modal */}
+        {detailsProspect && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+            onClick={() => setDetailsProspect(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-slate-900">Prospect details</h3>
+                <button
+                  type="button"
+                  onClick={() => setDetailsProspect(null)}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 space-y-3 text-sm">
+                <div>
+                  <span className="text-slate-500">Name</span>
+                  <p className="font-medium text-slate-900">
+                    {getFullName(detailsProspect) || '—'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Email</span>
+                  <p className="font-medium text-slate-900">{detailsProspect.email}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Company</span>
+                  <p className="font-medium text-slate-900">{detailsProspect.company || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Job title</span>
+                  <p className="font-medium text-slate-900">{detailsProspect.job_title || '—'}</p>
+                </div>
+                <div>
+                  <span className="text-slate-500">Last updated</span>
+                  <p className="font-medium text-slate-900">
+                    {formatLastAction(detailsProspect.updated_at)}
+                  </p>
+                </div>
+              </div>
+              <div className="border-t border-slate-100 px-4 py-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditProspect(detailsProspect)
+                    setDetailsProspect(null)
+                  }}
+                  className="w-full py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
+                >
+                  Edit prospect
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit prospect modal */}
+        {editProspect && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+            onClick={() => setEditProspect(null)}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-slate-900">Edit prospect</h3>
+                <button
+                  type="button"
+                  onClick={() => setEditProspect(null)}
+                  className="p-1 rounded text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4 space-y-3">
+                <input
+                  type="text"
+                  placeholder="Full Name"
+                  autoComplete="off"
+                  value={editForm.fullName}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, fullName: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                <input
+                  type="email"
+                  placeholder="Work Email"
+                  autoComplete="off"
+                  value={editForm.workEmail}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, workEmail: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Company"
+                  autoComplete="off"
+                  value={editForm.company}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, company: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Job Title"
+                  autoComplete="off"
+                  value={editForm.jobTitle}
+                  onChange={(e) =>
+                    setEditForm((f) => ({ ...f, jobTitle: e.target.value }))
+                  }
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                />
+                {updateError && (
+                  <p className="text-xs text-red-600">{updateError.message}</p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditProspect(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEdit}
+                    disabled={updating || !editForm.workEmail.trim()}
+                    className="flex-1 py-2.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-sm font-medium"
+                  >
+                    {updating ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

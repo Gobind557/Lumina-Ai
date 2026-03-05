@@ -2,6 +2,8 @@ import { prisma } from "../../infrastructure/prisma";
 import { ApiError } from "../../shared/errors";
 import { getCampaignMetrics } from "../analytics/analytics.service";
 import { createEmailSend } from "../email/email.service";
+import { enqueueCampaignStep } from "../../infrastructure/queue";
+import { getDelayMsForStep } from "./sequence.config";
 
 export const getCampaignById = async (id: string, userId: string) => {
   const campaign = await prisma.campaign.findFirst({
@@ -85,6 +87,24 @@ export const createCampaign = async (payload: {
       })),
       skipDuplicates: true,
     });
+
+    // If campaign starts as ACTIVE, immediately schedule step 1 for all prospects
+    if (status === "ACTIVE") {
+      const delayMs = getDelayMsForStep(1) ?? 0;
+      await Promise.all(
+        payload.prospectIds.map((prospectId) =>
+          enqueueCampaignStep(
+            {
+              campaignId: campaign.id,
+              prospectId,
+              userId: payload.userId,
+              stepNumber: 1,
+            },
+            delayMs,
+          ),
+        ),
+      );
+    }
   }
   return campaign;
 };
@@ -97,10 +117,41 @@ export const updateCampaignStatus = async (
   const campaign = await prisma.campaign.findFirst({ where: { id, userId } });
   if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
 
-  return prisma.campaign.update({
+  const updated = await prisma.campaign.update({
     where: { id },
     data: { status },
   });
+
+  // When transitioning into ACTIVE, schedule step 1 for prospects that haven't started yet
+  if (campaign.status !== "ACTIVE" && status === "ACTIVE") {
+    const prospects = await prisma.campaignProspect.findMany({
+      where: {
+        campaignId: id,
+        status: "ACTIVE",
+        currentStep: 0,
+      },
+      select: { prospectId: true },
+    });
+
+    if (prospects.length) {
+      const delayMs = getDelayMsForStep(1) ?? 0;
+      await Promise.all(
+        prospects.map((cp) =>
+          enqueueCampaignStep(
+            {
+              campaignId: id,
+              prospectId: cp.prospectId,
+              userId,
+              stepNumber: 1,
+            },
+            delayMs,
+          ),
+        ),
+      );
+    }
+  }
+
+  return updated;
 };
 
 export const getCampaignWithMetrics = async (id: string, userId: string) => {

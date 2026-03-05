@@ -1,25 +1,46 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
-import { ChevronDown, MoreVertical } from 'lucide-react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
+import { ChevronDown, MoreVertical, RefreshCw } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCampaign } from '../hooks/useCampaign'
 import { useCampaignProspects } from '../hooks/useCampaignProspects'
 import { useUpdateCampaignStatus } from '../hooks/useUpdateCampaignStatus'
+import type { CampaignProspectItem } from '../api/campaigns.api'
 
-const STEPS = [
-  { id: 1, label: 'Step 1: Initial Outreach', count: 45, replyRate: '6%', openRate: '86%' },
-  { id: 2, label: 'Step 2: Follow-Up', count: 35, replyRate: '4.25%' },
-  { id: 3, label: 'Step 3: Breakup Email', count: 12, replyRate: '1.75%' },
-]
+const STEP_LABELS: Record<number, string> = {
+  0: 'Step 0: Not started',
+  1: 'Step 1: Initial Outreach',
+  2: 'Step 2: Follow-Up',
+  3: 'Step 3: Breakup Email',
+  4: 'Step 4',
+  5: 'Step 5',
+}
 
-const ACTIVITY = [
-  { id: '1', initials: 'SM', name: 'Sarah Mitchell', detail: 'Opened rep 2 · email Step 2', time: '15 m ago' },
-  { id: '2', initials: 'EW', name: 'Emily Wong', detail: 'Opened email rep 4 · Step 3', time: '13h ago' },
-  { id: '3', initials: 'DK', name: 'Darren Kim', detail: 'Opened your initial email', time: '1h ago' },
-  { id: '4', initials: 'EW', name: 'Emily Wong', detail: 'Call avg ago · Inboxcloud 3 hr ago', time: '2h ago' },
-  { id: '5', initials: 'SC', name: 'Sam Carter', detail: 'Backed up 2 days ago', time: '8 hr ago' },
-]
-
+function buildStepsFromProspects(prospects: CampaignProspectItem[]) {
+  const byStep = new Map<number, { total: number; replied: number }>()
+  prospects.forEach((p) => {
+    const step = Math.max(0, p.currentStep)
+    const cur = byStep.get(step) ?? { total: 0, replied: 0 }
+    cur.total += 1
+    if (p.status === 'REPLIED') cur.replied += 1
+    byStep.set(step, cur)
+  })
+  const stepNumbers = Array.from(byStep.keys()).sort((a, b) => a - b)
+  if (stepNumbers.length === 0) {
+    return [{ id: 1, label: 'Step 1: Initial Outreach', count: 0, replyRate: '0%', openRate: null }]
+  }
+  return stepNumbers.map((stepNum) => {
+    const { total, replied } = byStep.get(stepNum)!
+    const replyRatePct = total > 0 ? Math.round((replied / total) * 100) : 0
+    return {
+      id: stepNum,
+      label: STEP_LABELS[stepNum] ?? `Step ${stepNum}`,
+      count: total,
+      replyRate: `${replyRatePct}%`,
+      openRate: null as string | null,
+    }
+  })
+}
 
 const OFFER_OPTIONS = ['All prospects', 'Offer prospects', 'Not yet offered', 'By step']
 
@@ -45,12 +66,27 @@ function prospectStatusToLabel(status: string): string {
   return map[status] ?? status
 }
 
+const CAMPAIGN_REFETCH_MS = 15_000
+
 export default function CampaignDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { campaign, loading: campaignLoading, error: campaignError, refetch } = useCampaign(id)
-  const { prospects, loading: prospectsLoading } = useCampaignProspects(id)
+  const { campaign, loading: campaignLoading, error: campaignError, refetch: refetchCampaign } = useCampaign(
+    id,
+    true,
+    CAMPAIGN_REFETCH_MS,
+  )
+  const { prospects, loading: prospectsLoading, refetch: refetchProspects } = useCampaignProspects(
+    id,
+    true,
+    CAMPAIGN_REFETCH_MS,
+  )
   const { updateStatus, loading: statusLoading } = useUpdateCampaignStatus()
+
+  const handleRefresh = useCallback(() => {
+    refetchCampaign()
+    refetchProspects()
+  }, [refetchCampaign, refetchProspects])
 
   const totalProspects = prospects.length
   const activeCount = prospects.filter((p) => p.status === 'ACTIVE').length
@@ -85,10 +121,33 @@ export default function CampaignDetail() {
     return () => document.removeEventListener('click', onOutside)
   }, [])
 
-  const filteredActivity = useMemo(
-    () => (selectedStep ? ACTIVITY.filter((_, index) => index % 2 === 0) : ACTIVITY),
-    [selectedStep]
-  )
+  const steps = useMemo(() => buildStepsFromProspects(prospects), [prospects])
+  const stepsWithOpenRate = useMemo(() => {
+    const openRate = campaign?.metrics?.openRate
+    if (openRate == null || steps.length === 0) return steps
+    return steps.map((s, i) =>
+      i === 0 ? { ...s, openRate: `${openRate}%` } : s
+    )
+  }, [steps, campaign?.metrics?.openRate])
+
+  const attentionItems = useMemo(() => {
+    const items: { label: string; count: number; highlight?: boolean }[] = []
+    if (repliedCount > 0) {
+      items.push({
+        label: repliedCount === 1 ? '1 Replied — follow up' : `${repliedCount} Replied — follow up`,
+        count: repliedCount,
+        highlight: true,
+      })
+    }
+    const followUps = prospects.filter((p) => p.status === 'ACTIVE' && p.currentStep >= 1).length
+    if (followUps > 0) {
+      items.push({
+        label: followUps === 1 ? '1 Send follow-up' : `${followUps} Send follow-ups`,
+        count: followUps,
+      })
+    }
+    return items
+  }, [prospects, repliedCount])
 
   const handlePauseResume = async () => {
     if (!campaign?.id) return
@@ -96,7 +155,7 @@ export default function CampaignDetail() {
     try {
       await updateStatus(campaign.id, next)
       setMoreMenuOpen(false)
-      refetch()
+      handleRefresh()
     } catch (_) {
       // error state in hook
     }
@@ -107,8 +166,10 @@ export default function CampaignDetail() {
     try {
       await updateStatus(campaign.id, 'ACTIVE')
       setMoreMenuOpen(false)
-      refetch()
-    } catch (_) {}
+      handleRefresh()
+    } catch {
+      // Error surfaced by useUpdateCampaignStatus
+    }
   }
 
   const displayName = campaign?.name ?? (id === 'campaign-1' ? 'Q1 SaaS Founders • Outreach' : 'Campaign')
@@ -133,7 +194,19 @@ export default function CampaignDetail() {
       {/* Top bar */}
       <div className="shrink-0 bg-gradient-to-br from-slate-50/98 via-indigo-50/98 to-slate-100/98 border-b border-slate-200/70">
         <div className="p-4 max-w-6xl mx-auto flex items-center justify-between gap-4">
-          <span className="text-sm text-slate-600">View Campaign</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-slate-600">View Campaign</span>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={campaignLoading || prospectsLoading}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200/70 text-xs text-slate-600 bg-white/70 hover:bg-white disabled:opacity-50"
+              title="Refresh metrics and prospects"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${campaignLoading || prospectsLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             {/* Primary action: always show one of Start / Pause / Resume */}
             {isDraft && (
@@ -299,12 +372,12 @@ export default function CampaignDetail() {
 
         <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {STEPS.map((step, index) => (
+            {stepsWithOpenRate.map((step) => (
               <button
                 key={step.id}
                 onClick={() => setSelectedStep(step.id)}
                 className={`rounded-xl border p-3 text-left transition-colors min-w-0 ${
-                  selectedStep === step.id || (selectedStep === null && step.id === 1)
+                  selectedStep === step.id || (selectedStep === null && step.id === (stepsWithOpenRate[0]?.id ?? 0))
                     ? 'border-indigo-300/70 bg-indigo-500/10'
                     : 'border-slate-200/70 bg-white/70'
                 }`}
@@ -316,11 +389,14 @@ export default function CampaignDetail() {
                 </div>
                 <div className="mt-2 text-[11px] text-slate-500">
                   Reply rate {step.replyRate}
-                  {step.openRate ? ` · Open rate ${step.openRate}` : ''}
+                  {step.openRate != null ? ` · Open rate ${step.openRate}` : ''}
                 </div>
               </button>
             ))}
           </div>
+          <p className="mt-3 text-[11px] text-slate-500">
+            Steps update as each sequence email is sent; reply status updates when we receive open/reply webhooks. Use Refresh to see the latest.
+          </p>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
@@ -341,18 +417,9 @@ export default function CampaignDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
           <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
             <div className="space-y-3">
-              {filteredActivity.map((item) => (
-                <div key={item.id} className="flex items-center gap-3 text-xs text-slate-600">
-                  <div className="w-8 h-8 rounded-full bg-indigo-500/15 flex items-center justify-center text-[10px] text-indigo-700 border border-indigo-200/70">
-                    {item.initials}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-900">{item.name}</p>
-                    <p className="text-[11px] text-slate-500">{item.detail}</p>
-                  </div>
-                  <span className="text-[11px] text-slate-400">{item.time}</span>
-                </div>
-              ))}
+              <p className="text-xs text-slate-500">
+                Activity will appear here when prospects open or reply to emails in this campaign.
+              </p>
             </div>
           </div>
 
@@ -360,19 +427,22 @@ export default function CampaignDetail() {
             <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
               <h2 className="text-sm font-semibold text-slate-900 mb-3">What Needs Attention</h2>
               <div className="space-y-2 text-xs text-slate-600">
-                <button
-                  onClick={() => navigate(ROUTES.COMPOSE)}
-                  className="w-full text-left inline-flex items-center justify-between rounded-lg border border-slate-200/70 px-3 py-2 bg-white/70"
-                >
-                  <span>5 Leads waiting for approval</span>
-                </button>
-                <button
-                  onClick={() => navigate(ROUTES.COMPOSE)}
-                  className="w-full text-left inline-flex items-center justify-between rounded-lg border border-slate-200/70 px-3 py-2 bg-white/70"
-                >
-                  <span>2 Send follow-ups</span>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-                </button>
+                {attentionItems.length === 0 ? (
+                  <p className="text-slate-500 py-1">Nothing needs attention right now.</p>
+                ) : (
+                  attentionItems.map((item) => (
+                    <button
+                      key={item.label}
+                      onClick={() => navigate(ROUTES.COMPOSE)}
+                      className="w-full text-left inline-flex items-center justify-between rounded-lg border border-slate-200/70 px-3 py-2 bg-white/70 hover:bg-slate-50"
+                    >
+                      <span>{item.label}</span>
+                      {item.highlight && (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
