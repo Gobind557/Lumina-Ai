@@ -9,16 +9,16 @@ import {
 
 export default function Dashboard() {
   return (
-    <div className="h-full w-full max-w-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative box-border flex flex-col overflow-hidden">
-      {/* Main Content - fills height; banner + middle + bottom so bottom is never clipped */}
-      <div className="relative w-full flex-1 min-h-0 flex flex-col p-4 md:p-6 gap-4 box-border overflow-hidden">
+    <div className="min-h-screen w-full max-w-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative box-border flex flex-col">
+      {/* Main Content - standard page flow so whole dashboard scrolls with the window */}
+      <div className="relative w-full flex flex-col p-4 md:p-6 gap-4 box-border">
         {/* Top Banner - own stacking context so it doesn't block clicks below */}
         <div className="flex-shrink-0 w-full relative z-0 isolate">
           <TopBanner />
         </div>
 
-        {/* Middle: Timeline + Action Center - takes remaining space, scrolls if needed */}
-        <div className="relative z-10 flex-1 min-h-0 min-w-0 overflow-y-auto">
+        {/* Middle: Timeline + Action Center - no inner scroll; they follow the page scroll */}
+        <div className="relative z-10 w-full max-w-full min-w-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full max-w-full min-w-0">
             <div className="lg:col-span-2 min-w-0 w-full">
               <LiveConversationTimeline />

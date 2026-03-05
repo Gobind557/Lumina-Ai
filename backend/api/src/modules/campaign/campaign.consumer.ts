@@ -1,4 +1,6 @@
+import { CampaignProspectStatus } from "@prisma/client";
 import { subscribe } from "../../infrastructure/eventBus";
+import { enqueueCampaignStep } from "../../infrastructure/queue";
 import {
   EMAIL_QUEUED,
   EMAIL_SENT,
@@ -12,9 +14,7 @@ import {
 } from "../email/email.events";
 import { prisma } from "../../infrastructure/prisma";
 import { updateCampaignStatus } from "./campaign.service";
-
-/** Max steps per prospect before marking as COMPLETED (no scheduling yet). */
-const DEFAULT_MAX_CAMPAIGN_STEPS = 5;
+import { getDelayMsForStep, SEQUENCE_MAX_STEP } from "./sequence.config";
 
 /**
  * Campaign engine consumer: reacts to email lifecycle events and progresses campaign state.
@@ -68,14 +68,31 @@ async function onEmailSent(payload: EmailSentPayload): Promise<void> {
     });
     if (cp) {
       const newStep = cp.currentStep + 1;
-      const status =
-        newStep >= DEFAULT_MAX_CAMPAIGN_STEPS && cp.status === "ACTIVE"
-          ? "COMPLETED"
+      const status: CampaignProspectStatus =
+        newStep >= SEQUENCE_MAX_STEP && cp.status === "ACTIVE"
+          ? ("COMPLETED" as CampaignProspectStatus)
           : cp.status;
       await prisma.campaignProspect.update({
         where: { id: cp.id },
         data: { currentStep: newStep, status },
       });
+
+      // Static step execution: schedule next email via BullMQ delayed job
+      if (status === "ACTIVE" && newStep < SEQUENCE_MAX_STEP) {
+        const nextStepNumber = newStep + 1;
+        const delayMs = getDelayMsForStep(nextStepNumber);
+        if (delayMs !== undefined) {
+          await enqueueCampaignStep(
+            {
+              campaignId: payload.campaignId,
+              prospectId: payload.prospectId,
+              userId: payload.userId,
+              stepNumber: nextStepNumber,
+            },
+            delayMs
+          );
+        }
+      }
     }
   }
 }

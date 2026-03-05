@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, MoreVertical, ChevronDown, LogOut } from "lucide-react";
 import { ROUTES } from "../constants";
+import { useDashboardFilters } from "../context/DashboardFilterContext";
 
 export default function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { weekOffset, setWeekOffset } = useDashboardFilters();
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
@@ -45,9 +47,19 @@ export default function Header() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm">
-            This Week
-            <ChevronDown className="w-3 h-3 inline-block ml-1" />
+          <button className="relative px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm flex items-center gap-1">
+            <select
+              value={weekOffset}
+              onChange={(e) =>
+                setWeekOffset(Number(e.target.value) as 0 | 1 | 2)
+              }
+              className="bg-transparent outline-none border-none text-sm pr-4 cursor-pointer appearance-none"
+            >
+              <option value={0}>This Week</option>
+              <option value={1}>Last Week</option>
+              <option value={2}>2 Weeks Ago</option>
+            </select>
+            <ChevronDown className="w-3 h-3 pointer-events-none" />
           </button>
           <button className="px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm">
             Me

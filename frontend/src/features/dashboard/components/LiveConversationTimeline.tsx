@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useDashboardTimeline } from "../hooks/useDashboard";
+import { useDashboardFilters } from "../../../shared/context/DashboardFilterContext";
 
 function formatSentAt(sentAt: Date | string | null): string {
   if (!sentAt) return "—";
@@ -26,14 +27,23 @@ export default function LiveConversationTimeline() {
   const [activeTab, setActiveTab] = useState<"today" | "replies" | "closed">(
     "today",
   );
-  const { timeline, loading } = useDashboardTimeline(7);
+  const { weekOffset } = useDashboardFilters();
+  // Fetch several weeks so the header "This Week" filter can jump between 7‑day windows.
+  const { timeline, loading } = useDashboardTimeline(42);
 
-  const chartData =
+  const allChartData =
     timeline?.timeline.map((d) => ({
       day: d.day,
       opens: d.opens,
       replies: d.replies,
     })) ?? [];
+
+  // Derive a 7‑day window from the end of the full timeline, shifted by the header weekOffset.
+  const DAYS_PER_WEEK = 7;
+  const totalPoints = allChartData.length;
+  const endIndex = Math.max(0, totalPoints - DAYS_PER_WEEK * weekOffset);
+  const startIndex = Math.max(0, endIndex - DAYS_PER_WEEK);
+  const chartData = allChartData.slice(startIndex, endIndex);
 
   const recentEmails = (timeline?.emails ?? []).slice(0, 8);
 

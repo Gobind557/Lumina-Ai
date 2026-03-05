@@ -8,7 +8,8 @@ import { startServer } from "./app/server";
 import "./modules/analytics/analytics.consumer";
 import "./modules/campaign/campaign.consumer";
 
-// Start BullMQ email worker (runs on import)
+// Start BullMQ workers (run on import)
 import "./modules/email/email.worker";
+import "./modules/campaign/sequence.worker";
 
 startServer();

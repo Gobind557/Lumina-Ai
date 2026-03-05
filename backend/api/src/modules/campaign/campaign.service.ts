@@ -1,6 +1,7 @@
 import { prisma } from "../../infrastructure/prisma";
 import { ApiError } from "../../shared/errors";
 import { getCampaignMetrics } from "../analytics/analytics.service";
+import { createEmailSend } from "../email/email.service";
 
 export const getCampaignById = async (id: string, userId: string) => {
   const campaign = await prisma.campaign.findFirst({
@@ -133,4 +134,51 @@ export const getCampaignProspects = async (campaignId: string, userId: string) =
     status: row.status,
     currentStep: row.currentStep,
   }));
+};
+
+/**
+ * Execute a scheduled campaign step: create and enqueue the next sequence email.
+ * Used by the campaign-step BullMQ worker. Uses placeholder content per step;
+ * can be extended later with campaign step templates.
+ */
+export const executeCampaignStep = async (payload: {
+  campaignId: string;
+  prospectId: string;
+  userId: string;
+  stepNumber: number;
+}) => {
+  const [campaign, prospect, user] = await Promise.all([
+    prisma.campaign.findFirst({
+      where: { id: payload.campaignId, userId: payload.userId },
+      select: { id: true, workspaceId: true, status: true },
+    }),
+    prisma.prospect.findUnique({
+      where: { id: payload.prospectId },
+      select: { email: true, firstName: true, lastName: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { email: true },
+    }),
+  ]);
+
+  if (!campaign || campaign.status !== "ACTIVE") return;
+  if (!prospect || !user?.email) return;
+
+  const subject = `Follow-up (Step ${payload.stepNumber})`;
+  const bodyHtml = `<p>Follow-up step ${payload.stepNumber}.</p>`;
+  const idempotencyKey = `${payload.campaignId}-${payload.prospectId}-step-${payload.stepNumber}`;
+
+  await createEmailSend({
+    userId: payload.userId,
+    workspaceId: campaign.workspaceId ?? undefined,
+    prospectId: payload.prospectId,
+    campaignId: payload.campaignId,
+    fromEmail: user.email,
+    toEmail: prospect.email,
+    subject,
+    bodyHtml,
+    bodyText: `Follow-up step ${payload.stepNumber}.`,
+    idempotencyKey,
+  });
 };

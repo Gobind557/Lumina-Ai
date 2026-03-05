@@ -3,6 +3,7 @@ import {
   useDashboardMomentum,
   useDashboardTimeline,
 } from "../hooks/useDashboard";
+import { useDashboardFilters } from "../../../shared/context/DashboardFilterContext";
 
 function formatSentAt(sentAt: Date | string | null): string {
   if (!sentAt) return "—";
@@ -36,33 +37,69 @@ const getInitials = (name: string) => {
 
 export default function MomentumCard() {
   const { momentum, loading } = useDashboardMomentum();
-  const { timeline } = useDashboardTimeline(7);
-  const recentEmails = (timeline?.emails ?? []).slice(0, 6);
+  const { weekOffset } = useDashboardFilters();
+  // Fetch several weeks so "Recent emails" can respect the same header filter
+  const { timeline } = useDashboardTimeline(42);
 
-  // Combine opens and replies, prioritize replies
+  // Filter emails to the same 7‑day window as the timeline graph
+  const now = new Date();
+  const end = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - 7 * weekOffset,
+    23,
+    59,
+    59,
+    999,
+  );
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6);
+  start.setHours(0, 0, 0, 0);
+
+  const recentEmails = (timeline?.emails ?? [])
+    .filter((email) => {
+      if (!email.sentAt) return false;
+      const sent = new Date(email.sentAt);
+      return sent >= start && sent <= end;
+    })
+    .slice(0, 6);
+
+  // Combine opens and replies, prioritize replies, and respect selected week window
   const activities: ContactActivity[] = momentum
-    ? [
-        ...momentum.replies.map((reply) => ({
-          name: reply.prospectName,
-          activity: reply.activity,
-          time: reply.time,
-          minutesAgo: reply.minutesAgo,
-          action: "follow-up",
-          actionLabel: "Follow Up",
-          isHot: reply.isHot,
-        })),
-        ...momentum.opens
-          .filter((open) => open.isHot)
-          .map((open) => ({
-            name: open.prospectName,
-            activity: open.activity,
-            time: open.time,
-            minutesAgo: open.minutesAgo,
-            action: "view",
-            actionLabel: "View",
-            isHot: open.isHot,
-          })),
-      ].slice(0, 10)
+    ? (() => {
+        const MIN_MINUTES = weekOffset * 7 * 24 * 60;
+        const MAX_MINUTES = (weekOffset + 1) * 7 * 24 * 60;
+
+        const inWeekWindow = (minutesAgo: number | undefined) =>
+          minutesAgo !== undefined &&
+          minutesAgo >= MIN_MINUTES &&
+          minutesAgo < MAX_MINUTES;
+
+        return [
+          ...momentum.replies
+            .filter((reply) => inWeekWindow(reply.minutesAgo))
+            .map((reply) => ({
+              name: reply.prospectName,
+              activity: reply.activity,
+              time: reply.time,
+              minutesAgo: reply.minutesAgo,
+              action: "follow-up",
+              actionLabel: "Follow Up",
+              isHot: reply.isHot,
+            })),
+          ...momentum.opens
+            .filter((open) => open.isHot && inWeekWindow(open.minutesAgo))
+            .map((open) => ({
+              name: open.prospectName,
+              activity: open.activity,
+              time: open.time,
+              minutesAgo: open.minutesAgo,
+              action: "view",
+              actionLabel: "View",
+              isHot: open.isHot,
+            })),
+        ].slice(0, 10);
+      })()
     : [];
 
   if (loading) {
