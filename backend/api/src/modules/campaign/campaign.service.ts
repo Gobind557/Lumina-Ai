@@ -4,6 +4,7 @@ import { getCampaignMetrics } from "../analytics/analytics.service";
 import { createEmailSend } from "../email/email.service";
 import { enqueueCampaignStep } from "../../infrastructure/queue";
 import { getDelayMsForStep } from "./sequence.config";
+import { renderTemplate } from "./template-renderer";
 
 export const getCampaignById = async (id: string, userId: string) => {
   const campaign = await prisma.campaign.findFirst({
@@ -19,11 +20,77 @@ export const getCampaignById = async (id: string, userId: string) => {
         },
         orderBy: { sentAt: "desc" },
       },
+      steps: {
+        orderBy: { stepNumber: "asc" },
+        include: { template: { select: { id: true, title: true } } },
+      },
     },
   });
   if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
   return campaign;
 };
+
+export type CampaignStepInput = { stepNumber: number; templateId: string | null; delayDays: number };
+
+export const getCampaignSteps = async (campaignId: string, userId: string) => {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, userId },
+    select: { id: true },
+  });
+  if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
+  return prisma.campaignStep.findMany({
+    where: { campaignId },
+    include: { template: { select: { id: true, title: true, content: true } } },
+    orderBy: { stepNumber: "asc" },
+  });
+};
+
+export const upsertCampaignSteps = async (
+  campaignId: string,
+  userId: string,
+  steps: CampaignStepInput[]
+) => {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, userId },
+    select: { id: true, status: true },
+  });
+  if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
+  if (campaign.status !== "DRAFT") {
+    throw new ApiError(400, "BAD_REQUEST", "Can only edit steps for draft campaigns");
+  }
+  await prisma.campaignStep.deleteMany({ where: { campaignId } });
+  if (steps.length) {
+    await prisma.campaignStep.createMany({
+      data: steps.map((s) => ({
+        campaignId,
+        stepNumber: s.stepNumber,
+        templateId: s.templateId || null,
+        delayDays: s.delayDays,
+      })),
+    });
+  }
+  return getCampaignSteps(campaignId, userId);
+};
+
+/** Returns delay in ms for a step. Uses CampaignStep if present, else fallback to sequence.config */
+export async function getDelayMsForCampaignStep(
+  campaignId: string,
+  stepNumber: number
+): Promise<number> {
+  const step = await prisma.campaignStep.findUnique({
+    where: { campaignId_stepNumber: { campaignId, stepNumber } },
+  });
+  if (step) return step.delayDays * 24 * 60 * 60 * 1000;
+  return getDelayMsForStep(stepNumber) ?? 0;
+}
+
+/** Returns max step number for a campaign. Uses CampaignStep count if present, else sequence.config */
+export async function getCampaignMaxStep(campaignId: string): Promise<number> {
+  const count = await prisma.campaignStep.count({ where: { campaignId } });
+  if (count > 0) return count;
+  const { SEQUENCE_MAX_STEP } = await import("./sequence.config");
+  return SEQUENCE_MAX_STEP;
+}
 
 export const listCampaigns = async (params: {
   userId: string;
@@ -62,6 +129,7 @@ export const createCampaign = async (payload: {
   endDate?: Date | null;
   prospectIds?: string[];
   status?: CampaignStatusType;
+  steps?: CampaignStepInput[];
 }) => {
   const status = payload.status && CAMPAIGN_STATUSES.includes(payload.status)
     ? payload.status
@@ -77,6 +145,16 @@ export const createCampaign = async (payload: {
       endDate: payload.endDate ?? null,
     },
   });
+  if (payload.steps?.length) {
+    await prisma.campaignStep.createMany({
+      data: payload.steps.map((s) => ({
+        campaignId: campaign.id,
+        stepNumber: s.stepNumber,
+        templateId: s.templateId || null,
+        delayDays: s.delayDays,
+      })),
+    });
+  }
   if (payload.prospectIds?.length) {
     await prisma.campaignProspect.createMany({
       data: payload.prospectIds.map((prospectId) => ({
@@ -90,7 +168,7 @@ export const createCampaign = async (payload: {
 
     // If campaign starts as ACTIVE, immediately schedule step 1 for all prospects
     if (status === "ACTIVE") {
-      const delayMs = getDelayMsForStep(1) ?? 0;
+      const delayMs = await getDelayMsForCampaignStep(campaign.id, 1);
       await Promise.all(
         payload.prospectIds.map((prospectId) =>
           enqueueCampaignStep(
@@ -106,7 +184,10 @@ export const createCampaign = async (payload: {
       );
     }
   }
-  return campaign;
+  return prisma.campaign.findFirst({
+    where: { id: campaign.id, userId: payload.userId },
+    include: { steps: { orderBy: { stepNumber: "asc" } } },
+  }) as Promise<typeof campaign & { steps: unknown[] }>;
 };
 
 export const updateCampaignStatus = async (
@@ -134,7 +215,7 @@ export const updateCampaignStatus = async (
     });
 
     if (prospects.length) {
-      const delayMs = getDelayMsForStep(1) ?? 0;
+      const delayMs = await getDelayMsForCampaignStep(id, 1);
       await Promise.all(
         prospects.map((cp) =>
           enqueueCampaignStep(
@@ -189,8 +270,7 @@ export const getCampaignProspects = async (campaignId: string, userId: string) =
 
 /**
  * Execute a scheduled campaign step: create and enqueue the next sequence email.
- * Used by the campaign-step BullMQ worker. Uses placeholder content per step;
- * can be extended later with campaign step templates.
+ * Uses CampaignStep + Template when configured; falls back to placeholder content.
  */
 export const executeCampaignStep = async (payload: {
   campaignId: string;
@@ -198,26 +278,52 @@ export const executeCampaignStep = async (payload: {
   userId: string;
   stepNumber: number;
 }) => {
-  const [campaign, prospect, user] = await Promise.all([
+  const [campaign, prospect, user, stepRow] = await Promise.all([
     prisma.campaign.findFirst({
       where: { id: payload.campaignId, userId: payload.userId },
       select: { id: true, workspaceId: true, status: true },
     }),
     prisma.prospect.findUnique({
       where: { id: payload.prospectId },
-      select: { email: true, firstName: true, lastName: true },
+      select: { email: true, firstName: true, lastName: true, company: true },
     }),
     prisma.user.findUnique({
       where: { id: payload.userId },
       select: { email: true },
+    }),
+    prisma.campaignStep.findUnique({
+      where: { campaignId_stepNumber: { campaignId: payload.campaignId, stepNumber: payload.stepNumber } },
+      include: { template: true },
     }),
   ]);
 
   if (!campaign || campaign.status !== "ACTIVE") return;
   if (!prospect || !user?.email) return;
 
-  const subject = `Follow-up (Step ${payload.stepNumber})`;
-  const bodyHtml = `<p>Follow-up step ${payload.stepNumber}.</p>`;
+  const vars = {
+    firstName: prospect.firstName,
+    lastName: prospect.lastName,
+    company: prospect.company,
+    email: prospect.email,
+  };
+
+  let subject: string;
+  let bodyHtml: string;
+  let bodyText: string;
+
+  if (stepRow?.template) {
+    subject = renderTemplate(stepRow.template.title, vars);
+    bodyHtml = renderTemplate(stepRow.template.content, vars);
+    bodyText = renderTemplate(
+      stepRow.template.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+      vars
+    );
+  } else {
+    subject = `Follow-up (Step ${payload.stepNumber})`;
+    bodyHtml = `<p>Follow-up step ${payload.stepNumber}.</p>`;
+    bodyText = `Follow-up step ${payload.stepNumber}.`;
+  }
+
   const idempotencyKey = `${payload.campaignId}-${payload.prospectId}-step-${payload.stepNumber}`;
 
   await createEmailSend({
@@ -229,7 +335,7 @@ export const executeCampaignStep = async (payload: {
     toEmail: prospect.email,
     subject,
     bodyHtml,
-    bodyText: `Follow-up step ${payload.stepNumber}.`,
+    bodyText,
     idempotencyKey,
   });
 };

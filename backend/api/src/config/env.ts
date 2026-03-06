@@ -26,6 +26,8 @@ const envSchema = z.object({
   SMTP_SECURE: z.coerce.boolean().default(false),
   CORS_ORIGIN: z.string().default("http://localhost:5173"),
   APP_URL: z.string().default("http://localhost:4000"),
+  /** When set, send via Brevo API and use Brevo open-tracking webhooks instead of our pixel. */
+  BREVO_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

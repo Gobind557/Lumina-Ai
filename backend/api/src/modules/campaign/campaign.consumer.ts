@@ -13,8 +13,11 @@ import {
   type EmailRepliedPayload,
 } from "../email/email.events";
 import { prisma } from "../../infrastructure/prisma";
-import { updateCampaignStatus } from "./campaign.service";
-import { getDelayMsForStep, SEQUENCE_MAX_STEP } from "./sequence.config";
+import {
+  updateCampaignStatus,
+  getDelayMsForCampaignStep,
+  getCampaignMaxStep,
+} from "./campaign.service";
 
 /**
  * Campaign engine consumer: reacts to email lifecycle events and progresses campaign state.
@@ -68,8 +71,9 @@ async function onEmailSent(payload: EmailSentPayload): Promise<void> {
     });
     if (cp) {
       const newStep = cp.currentStep + 1;
+      const maxStep = await getCampaignMaxStep(payload.campaignId);
       const status: CampaignProspectStatus =
-        newStep >= SEQUENCE_MAX_STEP && cp.status === "ACTIVE"
+        newStep >= maxStep && cp.status === "ACTIVE"
           ? ("COMPLETED" as CampaignProspectStatus)
           : cp.status;
       await prisma.campaignProspect.update({
@@ -77,21 +81,19 @@ async function onEmailSent(payload: EmailSentPayload): Promise<void> {
         data: { currentStep: newStep, status },
       });
 
-      // Static step execution: schedule next email via BullMQ delayed job
-      if (status === "ACTIVE" && newStep < SEQUENCE_MAX_STEP) {
+      // Schedule next email via BullMQ delayed job (uses CampaignStep or sequence.config)
+      if (status === "ACTIVE" && newStep < maxStep) {
         const nextStepNumber = newStep + 1;
-        const delayMs = getDelayMsForStep(nextStepNumber);
-        if (delayMs !== undefined) {
-          await enqueueCampaignStep(
-            {
-              campaignId: payload.campaignId,
-              prospectId: payload.prospectId,
-              userId: payload.userId,
-              stepNumber: nextStepNumber,
-            },
-            delayMs
-          );
-        }
+        const delayMs = await getDelayMsForCampaignStep(payload.campaignId, nextStepNumber);
+        await enqueueCampaignStep(
+          {
+            campaignId: payload.campaignId,
+            prospectId: payload.prospectId,
+            userId: payload.userId,
+            stepNumber: nextStepNumber,
+          },
+          delayMs
+        );
       }
     }
   }

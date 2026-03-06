@@ -101,4 +101,10 @@ export const emailRepository = {
     }),
 
   findEmailById: (id: string) => prisma.email.findUnique({ where: { id } }),
+
+  findEmailByProviderMessageId: (providerMessageId: string) =>
+    prisma.email.findFirst({
+      where: { providerMessageId },
+      select: { id: true },
+    }),
 };

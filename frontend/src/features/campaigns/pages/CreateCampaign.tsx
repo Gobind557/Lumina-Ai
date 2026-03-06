@@ -1,15 +1,23 @@
-import { useState, useMemo } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { ROUTES } from '@/shared/constants'
+import { ROUTES, API_ENDPOINTS } from '@/shared/constants'
+import { apiRequest } from '@/shared/api/client'
 import { useCreateCampaign } from '../hooks/useCreateCampaign'
 import { useProspects } from '@/features/prospects/hooks/useProspects'
 
-const STEPS = [
-  { day: 'Day 1', label: 'Initial Outreach' },
-  { day: 'Day 4', label: 'Follow-Up' },
-  { day: 'Day 3', label: 'Breakup Email' },
-]
+const DEFAULT_DELAYS = [0, 3, 5, 7, 10]
+
+interface TemplateOption {
+  id: string
+  title: string
+}
+
+interface SequenceStep {
+  stepNumber: number
+  templateId: string
+  delayDays: number
+}
 
 function prospectDisplayName(p: { first_name: string | null; last_name: string | null; email: string }) {
   const parts = [p.first_name, p.last_name].filter(Boolean) as string[]
@@ -22,8 +30,28 @@ export default function CreateCampaign() {
   const { prospects: allProspects, loading: prospectsLoading } = useProspects('')
   const [campaignName, setCampaignName] = useState('Startup Cold Outreach')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [sequenceEnabled, setSequenceEnabled] = useState(true)
-  const [approvalEnabled, setApprovalEnabled] = useState(true)
+  const [sequenceExpanded, setSequenceExpanded] = useState(true)
+  const [templates, setTemplates] = useState<TemplateOption[]>([])
+  const [templatesLoading, setTemplatesLoading] = useState(true)
+  const [steps, setSteps] = useState<SequenceStep[]>(() =>
+    DEFAULT_DELAYS.map((d, i) => ({ stepNumber: i + 1, templateId: '', delayDays: d }))
+  )
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await apiRequest<{ templates: { id: string; title: string }[] }>(
+          `${API_ENDPOINTS.TEMPLATES}?limit=200`
+        )
+        setTemplates(res.templates?.map((t) => ({ id: t.id, title: t.title })) ?? [])
+      } catch {
+        setTemplates([])
+      } finally {
+        setTemplatesLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   const toggleProspect = (id: string) => {
     setSelectedIds((prev) => {
@@ -47,12 +75,18 @@ export default function CreateCampaign() {
     [allProspects, selectedIds]
   )
 
+  const stepsToSend = useMemo(
+    () => steps.filter((s) => s.templateId).map((s) => ({ stepNumber: s.stepNumber, templateId: s.templateId, delayDays: s.delayDays })),
+    [steps]
+  )
+
   const handleSaveDraft = async () => {
     try {
       const campaign = await createCampaign({
         name: campaignName.trim() || 'Untitled Campaign',
         description: null,
         prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
+        steps: stepsToSend.length ? stepsToSend : undefined,
       })
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
@@ -67,6 +101,7 @@ export default function CreateCampaign() {
         description: null,
         prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
         status: 'ACTIVE',
+        steps: stepsToSend.length ? stepsToSend : undefined,
       })
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
@@ -138,29 +173,78 @@ export default function CreateCampaign() {
           )}
 
           <div className="border border-slate-200/70 rounded-xl bg-white/70 px-4 py-3">
-            <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setSequenceExpanded((e) => !e)}
+              className="flex w-full items-center justify-between"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-indigo-600/40 flex items-center justify-center text-xs text-white">
                   SC
                 </div>
                 <div className="text-sm text-slate-900">Sequence</div>
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
-            </div>
-            <div className="mt-3 space-y-2 text-xs text-slate-600">
-              {STEPS.map((step, index) => (
-                <div key={step.day} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-4 h-4 rounded-full border border-emerald-400/60 text-emerald-600 flex items-center justify-center">
-                      <Check className="w-3 h-3" />
-                    </span>
-                    <span className="text-slate-500">{step.day}</span>
-                    <span>{step.label}</span>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${sequenceExpanded ? 'rotate-180' : ''}`} />
+            </button>
+            {sequenceExpanded && (
+              <div className="mt-3 space-y-3">
+                <p className="text-[11px] text-slate-500">Pick a template for each step. Use placeholders like {'{{firstName}}'}, {'{{company}}'} in your templates.</p>
+                {steps.map((s, idx) => (
+                  <div key={s.stepNumber} className="flex items-center gap-2 rounded-lg border border-slate-200/70 bg-white/80 p-2">
+                    <span className="w-6 text-xs text-slate-500 shrink-0">Step {s.stepNumber}</span>
+                    <select
+                      value={s.templateId}
+                      onChange={(e) =>
+                        setSteps((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, templateId: e.target.value } : p))
+                        )
+                      }
+                      className="flex-1 min-w-0 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
+                    >
+                      <option value="">Select template</option>
+                      {templates.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.title}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min={0}
+                      value={s.delayDays}
+                      onChange={(e) =>
+                        setSteps((prev) =>
+                          prev.map((p, i) => (i === idx ? { ...p, delayDays: Math.max(0, parseInt(e.target.value, 10) || 0) } : p))
+                        )
+                      }
+                      className="w-14 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
+                    />
+                    <span className="text-[11px] text-slate-500 shrink-0">days</span>
+                    {steps.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx).map((p, i) => ({ ...p, stepNumber: i + 1 })))}
+                        className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
-                  {index === 0 && <span className="text-[11px] text-slate-500">Steps on reply</span>}
-                </div>
-              ))}
-            </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSteps((prev) => [
+                      ...prev,
+                      { stepNumber: prev.length + 1, templateId: '', delayDays: prev.length ? (prev[prev.length - 1]?.delayDays ?? 0) + 2 : 0 },
+                    ])
+                  }
+                  className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add step
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -192,39 +276,11 @@ export default function CreateCampaign() {
             </div>
             <div className="flex items-center justify-between">
               <span>Sequence:</span>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500">5 Steps · Initial Outreach</span>
-                <button
-                  onClick={() => setSequenceEnabled((prev) => !prev)}
-                  className={`w-10 h-5 rounded-full transition-colors ${
-                    sequenceEnabled ? 'bg-emerald-400' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`block w-4 h-4 rounded-full bg-white shadow translate-y-0.5 transition-transform ${
-                      sequenceEnabled ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Approval Mode:</span>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500">Manually approve first step</span>
-                <button
-                  onClick={() => setApprovalEnabled((prev) => !prev)}
-                  className={`w-10 h-5 rounded-full transition-colors ${
-                    approvalEnabled ? 'bg-emerald-400' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`block w-4 h-4 rounded-full bg-white shadow translate-y-0.5 transition-transform ${
-                      approvalEnabled ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
+              <span className="text-slate-500">
+                {stepsToSend.length > 0
+                  ? `${stepsToSend.length} step${stepsToSend.length === 1 ? '' : 's'} configured`
+                  : 'Using default sequence (5 steps)'}
+              </span>
             </div>
           </div>
           {createError && (

@@ -12,6 +12,13 @@ export interface CampaignMetrics {
   sentCount: number
 }
 
+export interface CampaignStepItem {
+  stepNumber: number
+  templateId: string | null
+  delayDays: number
+  template?: { id: string; title: string; content: string }
+}
+
 export interface Campaign {
   id: string
   userId: string
@@ -24,6 +31,7 @@ export interface Campaign {
   createdAt: string
   updatedAt: string
   _count?: { emails: number }
+  steps?: CampaignStepItem[]
   emails?: Array<{
     id: string
     status: string
@@ -68,6 +76,17 @@ export const campaignsApi = {
     return apiRequest<CampaignProspectItem[]>(`${API_BASE}/campaigns/${campaignId}/prospects`)
   },
 
+  getSteps: async (campaignId: string): Promise<CampaignStepItem[]> => {
+    return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`)
+  },
+
+  upsertSteps: async (campaignId: string, steps: { stepNumber: number; templateId: string | null; delayDays: number }[]): Promise<CampaignStepItem[]> => {
+    return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`, {
+      method: 'PUT',
+      body: JSON.stringify({ steps }),
+    })
+  },
+
   create: async (payload: {
     name: string
     description?: string | null
@@ -76,6 +95,7 @@ export const campaignsApi = {
     workspaceId?: string | null
     prospectIds?: string[]
     status?: CampaignStatus
+    steps?: { stepNumber: number; templateId: string | null; delayDays: number }[]
   }): Promise<Campaign> => {
     return apiRequest<Campaign>(`${API_BASE}/campaigns`, {
       method: 'POST',

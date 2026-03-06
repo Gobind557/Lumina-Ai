@@ -5,6 +5,8 @@ import {
   create,
   updateStatus,
   getProspects,
+  getSteps,
+  upsertSteps,
 } from "./campaign.controller";
 import { authMiddleware } from "../../shared/middleware/auth.middleware";
 
@@ -13,6 +15,8 @@ export const campaignRoutes = Router();
 campaignRoutes.use(authMiddleware);
 campaignRoutes.get("/", list);
 campaignRoutes.get("/:id/prospects", getProspects);
+campaignRoutes.get("/:id/steps", getSteps);
+campaignRoutes.put("/:id/steps", upsertSteps);
 campaignRoutes.get("/:id", getById);
 campaignRoutes.post("/", create);
 campaignRoutes.patch("/:id/status", updateStatus);

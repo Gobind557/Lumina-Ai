@@ -12,6 +12,7 @@ export function useCreateCampaign() {
     endDate?: string | null
     prospectIds?: string[]
     status?: CampaignStatus
+    steps?: Array<{ stepNumber: number; templateId: string | null; delayDays: number }>
   }) => {
     try {
       setLoading(true)

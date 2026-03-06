@@ -10,6 +10,7 @@ import {
   emailOpenWebhook,
   emailReplyWebhook,
   emailOpenPixel,
+  brevoWebhook,
 } from "../modules/email/webhook.controller";
 import { authMiddleware } from "../shared/middleware/auth.middleware";
 
@@ -20,6 +21,7 @@ const webhookRouter = Router();
 webhookRouter.post("/email/open", emailOpenWebhook);
 webhookRouter.get("/email/open-pixel", emailOpenPixel);
 webhookRouter.post("/email/reply", emailReplyWebhook);
+webhookRouter.post("/brevo", brevoWebhook);
 routes.use("/webhooks", webhookRouter);
 routes.use("/emails", authMiddleware, emailRoutes);
 routes.use("/ai", authMiddleware, aiRoutes);

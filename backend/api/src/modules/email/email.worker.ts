@@ -2,10 +2,13 @@ import { Worker } from "bullmq";
 import { env } from "../../config/env";
 import { emailRepository } from "./email.repository";
 import { sendEmailViaSmtp } from "../../infrastructure/smtp";
+import { sendEmailViaBrevo } from "../../infrastructure/brevo";
 import { publish } from "../../infrastructure/eventBus";
 import { EMAIL_SENT } from "./email.events";
 
 const connection = { connection: { url: env.REDIS_URL } };
+
+const useBrevo = !!env.BREVO_API_KEY;
 
 const buildTrackingPixelHtml = (emailId: string) => {
   const pixelUrl = `${env.APP_URL}/webhooks/email/open-pixel?email_id=${encodeURIComponent(
@@ -26,16 +29,28 @@ const worker = new Worker(
     if (!email) return;
 
     try {
-      const trackingPixel = buildTrackingPixelHtml(emailId);
-      const htmlWithPixel = `${email.bodyHtml}${trackingPixel}`;
+      let messageId: string;
 
-      const messageId = await sendEmailViaSmtp({
-        from: email.fromEmail,
-        to: email.toEmail,
-        subject: email.subject,
-        html: htmlWithPixel,
-        text: email.bodyText ?? undefined,
-      });
+      if (useBrevo) {
+        messageId = await sendEmailViaBrevo({
+          from: email.fromEmail,
+          to: email.toEmail,
+          subject: email.subject,
+          html: email.bodyHtml,
+          text: email.bodyText ?? undefined,
+          emailId,
+        });
+      } else {
+        const trackingPixel = buildTrackingPixelHtml(emailId);
+        const htmlWithPixel = `${email.bodyHtml}${trackingPixel}`;
+        messageId = await sendEmailViaSmtp({
+          from: email.fromEmail,
+          to: email.toEmail,
+          subject: email.subject,
+          html: htmlWithPixel,
+          text: email.bodyText ?? undefined,
+        });
+      }
 
       const sentAt = new Date();
       await emailRepository.updateEmailSent(emailId, messageId, sentAt);

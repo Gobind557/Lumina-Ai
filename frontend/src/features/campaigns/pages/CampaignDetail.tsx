@@ -7,16 +7,16 @@ import { useCampaignProspects } from '../hooks/useCampaignProspects'
 import { useUpdateCampaignStatus } from '../hooks/useUpdateCampaignStatus'
 import type { CampaignProspectItem } from '../api/campaigns.api'
 
-const STEP_LABELS: Record<number, string> = {
-  0: 'Step 0: Not started',
-  1: 'Step 1: Initial Outreach',
-  2: 'Step 2: Follow-Up',
-  3: 'Step 3: Breakup Email',
-  4: 'Step 4',
-  5: 'Step 5',
+function stepLabel(stepNum: number, steps?: Array<{ stepNumber: number; template?: { title: string } }>): string {
+  const step = steps?.find((s) => s.stepNumber === stepNum)
+  const title = step?.template?.title
+  return title ? `Step ${stepNum}: ${title}` : `Step ${stepNum}`
 }
 
-function buildStepsFromProspects(prospects: CampaignProspectItem[]) {
+function buildStepsFromProspects(
+  prospects: CampaignProspectItem[],
+  campaignSteps?: Array<{ stepNumber: number; template?: { title: string } }>
+) {
   const byStep = new Map<number, { total: number; replied: number }>()
   prospects.forEach((p) => {
     const step = Math.max(0, p.currentStep)
@@ -34,7 +34,7 @@ function buildStepsFromProspects(prospects: CampaignProspectItem[]) {
     const replyRatePct = total > 0 ? Math.round((replied / total) * 100) : 0
     return {
       id: stepNum,
-      label: STEP_LABELS[stepNum] ?? `Step ${stepNum}`,
+      label: stepLabel(stepNum, campaignSteps),
       count: total,
       replyRate: `${replyRatePct}%`,
       openRate: null as string | null,
@@ -98,7 +98,7 @@ export default function CampaignDetail() {
     prospects.length > 0
       ? prospects.reduce((s, p) => s + p.currentStep, 0) / prospects.length
       : 0
-  const maxSteps = 5
+  const maxSteps = campaign?.steps?.length ?? 5
   const progressPct = Math.min(100, Math.round((avgStep / maxSteps) * 100))
   const [selectedStep, setSelectedStep] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState<'activity' | 'insights'>('activity')
@@ -121,7 +121,10 @@ export default function CampaignDetail() {
     return () => document.removeEventListener('click', onOutside)
   }, [])
 
-  const steps = useMemo(() => buildStepsFromProspects(prospects), [prospects])
+  const steps = useMemo(
+    () => buildStepsFromProspects(prospects, campaign?.steps),
+    [prospects, campaign?.steps]
+  )
   const stepsWithOpenRate = useMemo(() => {
     const openRate = campaign?.metrics?.openRate
     if (openRate == null || steps.length === 0) return steps

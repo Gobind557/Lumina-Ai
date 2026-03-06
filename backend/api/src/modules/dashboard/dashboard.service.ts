@@ -3,8 +3,10 @@ import { getCampaignMetrics } from "../analytics/analytics.service";
 
 export const getDashboardStats = async (userId: string) => {
   const now = new Date();
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
-  const weekStart = new Date(now.setDate(now.getDate() - 7));
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - 7);
 
   const [totalEmails, todayEmails, weekEmails] = await Promise.all([
     prisma.email.count({ where: { userId, status: "SENT" } }),
@@ -130,14 +132,18 @@ export const getDashboardTimeline = async (
     cursor.setDate(cursor.getDate() + 1);
   }
 
+  // Bucket by UTC date; ensure we have a key for every day that has events
+  // (timeline keys above are from server-local iteration, so UTC dates can be missing)
   opens.forEach((open) => {
     const day = open.openedAt.toISOString().split("T")[0];
-    if (timeline[day]) timeline[day].opens++;
+    if (!timeline[day]) timeline[day] = { opens: 0, replies: 0 };
+    timeline[day].opens++;
   });
 
   replies.forEach((reply) => {
     const day = reply.repliedAt.toISOString().split("T")[0];
-    if (timeline[day]) timeline[day].replies++;
+    if (!timeline[day]) timeline[day] = { opens: 0, replies: 0 };
+    timeline[day].replies++;
   });
 
   return {
