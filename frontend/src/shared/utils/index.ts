@@ -20,6 +20,22 @@ export const formatDateTime = (date: Date | string): string => {
   }).format(d)
 }
 
+/** Relative time for activity feed, e.g. "5m ago", "Yesterday" */
+export const formatTimeAgo = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date
+  const now = new Date()
+  const ms = now.getTime() - d.getTime()
+  const mins = Math.floor(ms / 60_000)
+  const hours = Math.floor(ms / 3600_000)
+  const days = Math.floor(ms / 86400_000)
+  if (mins < 1) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hours < 24) return `${hours}h ago`
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days}d ago`
+  return formatDate(d)
+}
+
 export const truncate = (text: string, maxLength: number): string => {
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'

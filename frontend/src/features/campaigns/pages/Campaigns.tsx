@@ -1,8 +1,10 @@
-import { useState } from 'react'
-import { Plus, ChevronRight, MoreVertical, Star, TrendingUp } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Plus, ChevronRight, MoreVertical, Star, TrendingUp, Pause, Play, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCampaigns } from '../hooks/useCampaigns'
+import { useUpdateCampaignStatus } from '../hooks/useUpdateCampaignStatus'
+import { useDeleteCampaign } from '../hooks/useDeleteCampaign'
 import type { CampaignStatus } from '../api/campaigns.api'
 
 const TAB_STATUS: Record<string, CampaignStatus | undefined> = {
@@ -58,9 +60,57 @@ function formatLastActivity(createdAt: string, status: string): string {
 
 export default function Campaigns() {
   const navigate = useNavigate()
+  const menuRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>('All')
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const statusFilter = TAB_STATUS[activeTab]
   const { campaigns: apiCampaigns, loading, error, refetch } = useCampaigns({ status: statusFilter })
+  const { updateStatus, loading: statusLoading } = useUpdateCampaignStatus()
+  const { deleteCampaign, loading: deleteLoading } = useDeleteCampaign()
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuId(null)
+      }
+    }
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
+  const handlePause = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setOpenMenuId(null)
+    try {
+      await updateStatus(id, 'PAUSED')
+      refetch()
+    } catch {
+      // error handled by hook
+    }
+  }
+
+  const handleResume = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setOpenMenuId(null)
+    try {
+      await updateStatus(id, 'ACTIVE')
+      refetch()
+    } catch {
+      // error handled by hook
+    }
+  }
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
+    setOpenMenuId(null)
+    if (!window.confirm('Are you sure you want to delete this campaign? This cannot be undone.')) return
+    try {
+      await deleteCampaign(id)
+      refetch()
+    } catch {
+      // error handled by hook
+    }
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
@@ -128,13 +178,13 @@ export default function Campaigns() {
             const label = statusToLabel(campaign.status)
             const emailCount = campaign._count?.emails ?? 0
             const progress = campaign.status === 'ACTIVE' ? 0.5 : campaign.status === 'DRAFT' ? 0.08 : 0.6
+            const isPausable = campaign.status === 'ACTIVE'
+            const isResumable = campaign.status === 'PAUSED'
             return (
-            <button
+            <div
               key={campaign.id}
-              onClick={() =>
-                navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
-              }
-              className="text-left bg-white/70 backdrop-blur-xl border border-white/60 rounded-2xl p-4 shadow-[0_18px_50px_rgba(30,41,59,0.12)] transition-colors relative overflow-hidden hover:border-slate-300/70"
+              onClick={() => navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))}
+              className="text-left bg-white/70 backdrop-blur-xl border border-white/60 rounded-2xl p-4 shadow-[0_18px_50px_rgba(30,41,59,0.12)] transition-colors relative overflow-hidden hover:border-slate-300/70 cursor-pointer"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
@@ -164,6 +214,54 @@ export default function Campaigns() {
                     >
                       {label}
                     </span>
+                    <div
+                      ref={openMenuId === campaign.id ? menuRef : undefined}
+                      className="relative"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOpenMenuId((id) => (id === campaign.id ? null : campaign.id))
+                        }}
+                        className="shrink-0 w-7 h-7 rounded-lg border border-slate-200/70 inline-flex items-center justify-center bg-white/70 hover:bg-white text-slate-500"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                      {openMenuId === campaign.id && (
+                        <div className="absolute right-0 top-full mt-1 py-1 min-w-[160px] rounded-lg border border-slate-200/70 bg-white shadow-lg z-20">
+                          {isPausable && (
+                            <button
+                              type="button"
+                              onClick={(e) => handlePause(e, campaign.id)}
+                              disabled={statusLoading}
+                              className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              <Pause className="w-3.5 h-3.5" /> Pause Campaign
+                            </button>
+                          )}
+                          {isResumable && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleResume(e, campaign.id)}
+                              disabled={statusLoading}
+                              className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                            >
+                              <Play className="w-3.5 h-3.5" /> Resume Campaign
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(e, campaign.id)}
+                            disabled={deleteLoading}
+                            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete Campaign
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -197,7 +295,7 @@ export default function Campaigns() {
                   </span>
                 </div>
               </div>
-            </button>
+            </div>
             )
           })
           )}

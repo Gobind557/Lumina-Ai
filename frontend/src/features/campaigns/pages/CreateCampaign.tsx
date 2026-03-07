@@ -1,16 +1,19 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Check, ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, ExternalLink, FilePlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES, API_ENDPOINTS } from '@/shared/constants'
 import { apiRequest } from '@/shared/api/client'
+import { MOCK_TEMPLATES } from '@/features/templates/data/mockTemplates'
 import { useCreateCampaign } from '../hooks/useCreateCampaign'
 import { useProspects } from '@/features/prospects/hooks/useProspects'
 
 const DEFAULT_DELAYS = [0, 3, 5, 7, 10]
+const TEMPLATE_VARS = ['{{firstName}}', '{{lastName}}', '{{company}}', '{{email}}']
 
 interface TemplateOption {
   id: string
   title: string
+  content?: string
 }
 
 interface SequenceStep {
@@ -40,12 +43,15 @@ export default function CreateCampaign() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await apiRequest<{ templates: { id: string; title: string }[] }>(
+        const res = await apiRequest<{ templates: { id: string; title: string; content?: string }[] }>(
           `${API_ENDPOINTS.TEMPLATES}?limit=200`
         )
-        setTemplates(res.templates?.map((t) => ({ id: t.id, title: t.title })) ?? [])
+        const apiTemplates = res.templates?.map((t) => ({ id: t.id, title: t.title, content: t.content })) ?? []
+        const prebuilt = MOCK_TEMPLATES.map((t) => ({ id: t.id, title: t.title, content: t.description }))
+        setTemplates([...apiTemplates, ...prebuilt])
       } catch {
-        setTemplates([])
+        const prebuilt = MOCK_TEMPLATES.map((t) => ({ id: t.id, title: t.title, content: t.description }))
+        setTemplates(prebuilt)
       } finally {
         setTemplatesLoading(false)
       }
@@ -188,49 +194,83 @@ export default function CreateCampaign() {
             </button>
             {sequenceExpanded && (
               <div className="mt-3 space-y-3">
-                <p className="text-[11px] text-slate-500">Pick a template for each step. Use placeholders like {'{{firstName}}'}, {'{{company}}'} in your templates.</p>
-                {steps.map((s, idx) => (
-                  <div key={s.stepNumber} className="flex items-center gap-2 rounded-lg border border-slate-200/70 bg-white/80 p-2">
-                    <span className="w-6 text-xs text-slate-500 shrink-0">Step {s.stepNumber}</span>
-                    <select
-                      value={s.templateId}
-                      onChange={(e) =>
-                        setSteps((prev) =>
-                          prev.map((p, i) => (i === idx ? { ...p, templateId: e.target.value } : p))
-                        )
-                      }
-                      className="flex-1 min-w-0 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
-                    >
-                      <option value="">Select template</option>
-                      {templates.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.title}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min={0}
-                      value={s.delayDays}
-                      onChange={(e) =>
-                        setSteps((prev) =>
-                          prev.map((p, i) => (i === idx ? { ...p, delayDays: Math.max(0, parseInt(e.target.value, 10) || 0) } : p))
-                        )
-                      }
-                      className="w-14 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
-                    />
-                    <span className="text-[11px] text-slate-500 shrink-0">days</span>
-                    {steps.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx).map((p, i) => ({ ...p, stepNumber: i + 1 })))}
-                        className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50"
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <p className="text-[11px] text-slate-500">Pick a template for each step. Use placeholders like {'{{firstName}}'}, {'{{company}}'} in your templates.</p>
+                  <a
+                    href={ROUTES.TEMPLATES_NEW}
+                    onClick={(e) => { e.preventDefault(); navigate(ROUTES.TEMPLATES_NEW) }}
+                    className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+                  >
+                    <FilePlus className="w-3.5 h-3.5" /> Create template
+                  </a>
+                </div>
+                {steps.map((s, idx) => {
+                  const selectedTemplate = templates.find((t) => t.id === s.templateId)
+                  return (
+                  <div key={s.stepNumber} className="space-y-2">
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200/70 bg-white/80 p-2">
+                      <span className="w-6 text-xs text-slate-500 shrink-0">Step {s.stepNumber}</span>
+                      <select
+                        value={s.templateId}
+                        onChange={(e) =>
+                          setSteps((prev) =>
+                            prev.map((p, i) => (i === idx ? { ...p, templateId: e.target.value } : p))
+                          )
+                        }
+                        className="flex-1 min-w-0 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <option value="">Select template</option>
+                        {templates.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.title}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min={0}
+                        value={s.delayDays}
+                        onChange={(e) =>
+                          setSteps((prev) =>
+                            prev.map((p, i) => (i === idx ? { ...p, delayDays: Math.max(0, parseInt(e.target.value, 10) || 0) } : p))
+                          )
+                        }
+                        className="w-14 rounded-lg border border-slate-200/70 px-2 py-1.5 text-xs text-slate-900 bg-white"
+                      />
+                      <span className="text-[11px] text-slate-500 shrink-0">days</span>
+                      {steps.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx).map((p, i) => ({ ...p, stepNumber: i + 1 })))}
+                          className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {selectedTemplate && (
+                      <div className="rounded-lg border border-slate-200/50 bg-slate-50/80 p-3 text-xs">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-slate-600 font-medium">Preview</span>
+                          <a
+                            href={ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)}
+                            onClick={(e) => { e.preventDefault(); navigate(ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)) }}
+                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                          >
+                            <ExternalLink className="w-3 h-3" /> Edit template
+                          </a>
+                        </div>
+                        <div className="text-slate-700 whitespace-pre-wrap line-clamp-4 max-h-24 overflow-y-auto">
+                          {selectedTemplate.content
+                            ? selectedTemplate.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+                            : 'No content'}
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-2">Variables: {TEMPLATE_VARS.join(', ')}</p>
+                      </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
                 <button
                   type="button"
                   onClick={() =>

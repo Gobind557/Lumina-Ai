@@ -6,7 +6,6 @@ import { MOCK_TEMPLATES } from "../data/mockTemplates";
 import TemplateDetailsForm from "../components/TemplateDetailsForm";
 import TemplateEditorCard from "../components/TemplateEditorCard";
 import LuminaInspirationCard from "../components/LuminaInspirationCard";
-import type { TemplateCardData } from "../types";
 
 const DEFAULT_CONTENT = `Hi [First Name],
 
@@ -27,6 +26,16 @@ export default function EditTemplate() {
   useEffect(() => {
     if (!id) return;
     const loadTemplate = async () => {
+      // Pre-built templates: use local data, skip API call to avoid 404
+      const prebuilt = MOCK_TEMPLATES.find((x) => x.id === id);
+      if (prebuilt) {
+        setIsApiTemplate(false);
+        setTitle(prebuilt.title);
+        setCategory(prebuilt.category);
+        setContent(prebuilt.content ?? prebuilt.description);
+        return;
+      }
+
       try {
         const response = await apiRequest<{
           id: string;
@@ -45,16 +54,7 @@ export default function EditTemplate() {
           setTone(response.tone);
         }
       } catch (error) {
-        const fallback = MOCK_TEMPLATES.find((x) => x.id === id);
-        const t: TemplateCardData | undefined = fallback;
-        if (!t) {
-          navigate(ROUTES.TEMPLATES);
-          return;
-        }
-        setIsApiTemplate(false);
-        setTitle(t.title);
-        setCategory(t.category);
-        setContent(t.content ?? t.description);
+        navigate(ROUTES.TEMPLATES);
       }
     };
 

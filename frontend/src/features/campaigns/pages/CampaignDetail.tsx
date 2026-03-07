@@ -2,10 +2,13 @@ import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, MoreVertical, RefreshCw } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
+import { formatTimeAgo } from '@/shared/utils'
 import { useCampaign } from '../hooks/useCampaign'
 import { useCampaignProspects } from '../hooks/useCampaignProspects'
+import { useCampaignActivities } from '../hooks/useCampaignActivities'
 import { useUpdateCampaignStatus } from '../hooks/useUpdateCampaignStatus'
-import type { CampaignProspectItem } from '../api/campaigns.api'
+import ActivityFeed from '@/features/email/components/timeline/ActivityFeed'
+import type { CampaignProspectItem, CampaignActivityItem } from '../api/campaigns.api'
 
 function stepLabel(stepNum: number, steps?: Array<{ stepNumber: number; template?: { title: string } }>): string {
   const step = steps?.find((s) => s.stepNumber === stepNum)
@@ -25,17 +28,24 @@ function buildStepsFromProspects(
     if (p.status === 'REPLIED') cur.replied += 1
     byStep.set(step, cur)
   })
-  const stepNumbers = Array.from(byStep.keys()).sort((a, b) => a - b)
-  if (stepNumbers.length === 0) {
-    return [{ id: 1, label: 'Step 1: Initial Outreach', count: 0, replyRate: '0%', openRate: null }]
-  }
+
+  // Show all configured steps (previous, current, coming); fallback to steps that have prospects
+  const fromConfig = (campaignSteps?.map((s) => s.stepNumber) ?? []).sort((a, b) => a - b)
+  const fromProspects = Array.from(byStep.keys()).sort((a, b) => a - b)
+  const stepNumbers =
+    fromConfig.length > 0
+      ? fromConfig
+      : fromProspects.length > 0
+        ? fromProspects
+        : [1]
+
   return stepNumbers.map((stepNum) => {
-    const { total, replied } = byStep.get(stepNum)!
-    const replyRatePct = total > 0 ? Math.round((replied / total) * 100) : 0
+    const stats = byStep.get(stepNum) ?? { total: 0, replied: 0 }
+    const replyRatePct = stats.total > 0 ? Math.round((stats.replied / stats.total) * 100) : 0
     return {
       id: stepNum,
       label: stepLabel(stepNum, campaignSteps),
-      count: total,
+      count: stats.total,
       replyRate: `${replyRatePct}%`,
       openRate: null as string | null,
     }
@@ -81,12 +91,27 @@ export default function CampaignDetail() {
     true,
     CAMPAIGN_REFETCH_MS,
   )
+  const { activities: rawActivities, loading: activitiesLoading, refetch: refetchActivities } = useCampaignActivities(
+    id,
+    true,
+    CAMPAIGN_REFETCH_MS,
+  )
   const { updateStatus, loading: statusLoading } = useUpdateCampaignStatus()
 
   const handleRefresh = useCallback(() => {
     refetchCampaign()
     refetchProspects()
-  }, [refetchCampaign, refetchProspects])
+    refetchActivities()
+  }, [refetchCampaign, refetchProspects, refetchActivities])
+
+  const activityFeedItems = useMemo(() => {
+    return rawActivities.map((a: CampaignActivityItem) => ({
+      type: a.type,
+      timestamp: formatTimeAgo(a.timestamp),
+      description: a.description ?? undefined,
+      prospectName: a.prospectName ?? undefined,
+    }))
+  }, [rawActivities])
 
   const totalProspects = prospects.length
   const activeCount = prospects.filter((p) => p.status === 'ACTIVE').length
@@ -126,12 +151,22 @@ export default function CampaignDetail() {
     [prospects, campaign?.steps]
   )
   const stepsWithOpenRate = useMemo(() => {
-    const openRate = campaign?.metrics?.openRate
-    if (openRate == null || steps.length === 0) return steps
-    return steps.map((s, i) =>
-      i === 0 ? { ...s, openRate: `${openRate}%` } : s
+    const stepMetrics = campaign?.stepMetrics ?? []
+    const rateByStep = new Map(stepMetrics.map((m) => [m.stepNumber, m.openRate]))
+    return steps.map((s) => {
+      const rate = rateByStep.get(s.id)
+      return rate != null ? { ...s, openRate: `${rate}%` } : s
+    })
+  }, [steps, campaign?.stepMetrics])
+
+  // Step with most prospects = "current" step; highlight it when none selected
+  const currentStepId = useMemo(() => {
+    if (stepsWithOpenRate.length === 0) return null
+    const withMost = stepsWithOpenRate.reduce((best, s) =>
+      s.count >= (best?.count ?? 0) ? s : best
     )
-  }, [steps, campaign?.metrics?.openRate])
+    return withMost.count > 0 ? withMost.id : (stepsWithOpenRate[0]?.id ?? null)
+  }, [stepsWithOpenRate])
 
   const attentionItems = useMemo(() => {
     const items: { label: string; count: number; highlight?: boolean }[] = []
@@ -142,6 +177,13 @@ export default function CampaignDetail() {
         highlight: true,
       })
     }
+    const openedNoReply = campaign?.attention?.openedNoReplyCount ?? 0
+    if (openedNoReply > 0) {
+      items.push({
+        label: openedNoReply === 1 ? '1 Opened — no reply yet' : `${openedNoReply} Opened — no reply yet`,
+        count: openedNoReply,
+      })
+    }
     const followUps = prospects.filter((p) => p.status === 'ACTIVE' && p.currentStep >= 1).length
     if (followUps > 0) {
       items.push({
@@ -150,7 +192,7 @@ export default function CampaignDetail() {
       })
     }
     return items
-  }, [prospects, repliedCount])
+  }, [prospects, repliedCount, campaign?.attention?.openedNoReplyCount])
 
   const handlePauseResume = async () => {
     if (!campaign?.id) return
@@ -375,12 +417,16 @@ export default function CampaignDetail() {
 
         <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {stepsWithOpenRate.map((step) => (
+            {stepsWithOpenRate.map((step) => {
+              const isHighlighted =
+                selectedStep === step.id ||
+                (selectedStep === null && step.id === currentStepId)
+              return (
               <button
                 key={step.id}
                 onClick={() => setSelectedStep(step.id)}
                 className={`rounded-xl border p-3 text-left transition-colors min-w-0 ${
-                  selectedStep === step.id || (selectedStep === null && step.id === (stepsWithOpenRate[0]?.id ?? 0))
+                  isHighlighted
                     ? 'border-indigo-300/70 bg-indigo-500/10'
                     : 'border-slate-200/70 bg-white/70'
                 }`}
@@ -395,34 +441,32 @@ export default function CampaignDetail() {
                   {step.openRate != null ? ` · Open rate ${step.openRate}` : ''}
                 </div>
               </button>
-            ))}
+            )})}
           </div>
           <p className="mt-3 text-[11px] text-slate-500">
-            Steps update as each sequence email is sent; reply status updates when we receive open/reply webhooks. Use Refresh to see the latest.
+            Steps update as each sequence email is sent; reply status updates when we receive open/reply webhooks. Next steps are scheduled automatically after each step email is sent, using the delay set for that step. Use Refresh to see the latest.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs">
-          {['Activity Feed', 'AI Insights'].map((tab) => (
-            <button
-              key={tab}
-              className={`inline-flex items-center shrink-0 px-3 py-1.5 rounded-full border whitespace-nowrap ${
-                tab === 'Activity Feed'
-                  ? 'bg-indigo-600 border-indigo-600 text-white'
-                  : 'border-slate-200/70 text-slate-500 bg-white/70'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-4">
           <div className="glass-card border border-slate-200/70 rounded-2xl p-4">
             <div className="space-y-3">
-              <p className="text-xs text-slate-500">
-                Activity will appear here when prospects open or reply to emails in this campaign.
-              </p>
+              {activeTab === 'activity' && (
+                <>
+                  {activitiesLoading && (
+                    <p className="text-xs text-slate-500">Loading activity…</p>
+                  )}
+                  {!activitiesLoading && (
+                    <ActivityFeed
+                      activities={activityFeedItems}
+                      emptyMessage="No activity yet. Opens and replies in this campaign will appear here."
+                    />
+                  )}
+                </>
+              )}
+              {activeTab === 'insights' && (
+                <p className="text-xs text-slate-500">AI Insights coming soon.</p>
+              )}
             </div>
           </div>
 

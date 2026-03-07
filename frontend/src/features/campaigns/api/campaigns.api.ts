@@ -40,6 +40,8 @@ export interface Campaign {
     toEmail: string
   }>
   metrics?: CampaignMetrics
+  attention?: { openedNoReplyCount: number }
+  stepMetrics?: Array<{ stepNumber: number; openRate: number }>
 }
 
 export type CampaignProspectStatus = 'ACTIVE' | 'REPLIED' | 'COMPLETED'
@@ -51,6 +53,13 @@ export interface CampaignProspectItem {
   company: string
   status: CampaignProspectStatus
   currentStep: number
+}
+
+export type CampaignActivityItem = {
+  type: 'email_opened' | 'reply'
+  timestamp: string
+  description?: string
+  prospectName?: string
 }
 
 export interface ListCampaignsResponse {
@@ -80,6 +89,12 @@ export const campaignsApi = {
     return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`)
   },
 
+  getActivities: async (campaignId: string, limit = 50): Promise<{ activities: CampaignActivityItem[] }> => {
+    return apiRequest<{ activities: CampaignActivityItem[] }>(
+      `${API_BASE}/campaigns/${campaignId}/activities?limit=${limit}`
+    )
+  },
+
   upsertSteps: async (campaignId: string, steps: { stepNumber: number; templateId: string | null; delayDays: number }[]): Promise<CampaignStepItem[]> => {
     return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`, {
       method: 'PUT',
@@ -107,6 +122,12 @@ export const campaignsApi = {
     return apiRequest<Campaign>(`${API_BASE}/campaigns/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
+    })
+  },
+
+  delete: async (id: string): Promise<void> => {
+    return apiRequest<void>(`${API_BASE}/campaigns/${id}`, {
+      method: 'DELETE',
     })
   },
 }

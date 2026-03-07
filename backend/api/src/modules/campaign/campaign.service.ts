@@ -4,7 +4,38 @@ import { getCampaignMetrics } from "../analytics/analytics.service";
 import { createEmailSend } from "../email/email.service";
 import { enqueueCampaignStep } from "../../infrastructure/queue";
 import { getDelayMsForStep } from "./sequence.config";
+import { getPrebuiltTemplate } from "./prebuilt-templates";
 import { renderTemplate } from "./template-renderer";
+
+/** Resolve templateId for DB: prebuilt keys ("1"-"6") become real Template ids so FK is satisfied. */
+async function resolveTemplateIdForStep(
+  userId: string,
+  templateId: string | null
+): Promise<string | null> {
+  if (!templateId) return null;
+  const prebuilt = getPrebuiltTemplate(templateId);
+  if (prebuilt) {
+    const marker = `Prebuilt:${templateId}`;
+    let template = await prisma.template.findFirst({
+      where: { userId, description: marker },
+      select: { id: true },
+    });
+    if (!template) {
+      template = await prisma.template.create({
+        data: {
+          userId,
+          title: prebuilt.title,
+          description: marker,
+          content: prebuilt.content,
+          category: "Campaign",
+        },
+        select: { id: true },
+      });
+    }
+    return template.id;
+  }
+  return templateId;
+}
 
 export const getCampaignById = async (id: string, userId: string) => {
   const campaign = await prisma.campaign.findFirst({
@@ -60,19 +91,25 @@ export const upsertCampaignSteps = async (
   }
   await prisma.campaignStep.deleteMany({ where: { campaignId } });
   if (steps.length) {
-    await prisma.campaignStep.createMany({
-      data: steps.map((s) => ({
+    const resolved = await Promise.all(
+      steps.map(async (s) => ({
         campaignId,
         stepNumber: s.stepNumber,
-        templateId: s.templateId || null,
+        templateId: await resolveTemplateIdForStep(userId, s.templateId || null),
         delayDays: s.delayDays,
-      })),
+      }))
+    );
+    await prisma.campaignStep.createMany({
+      data: resolved,
     });
   }
   return getCampaignSteps(campaignId, userId);
 };
 
-/** Returns delay in ms for a step. Uses CampaignStep if present, else fallback to sequence.config */
+/** Minimum delay between steps (1 min) when user sets 0 days, so two steps don't send in the same second. */
+const MIN_STEP_DELAY_MS = 60 * 1000;
+
+/** Returns delay in ms for a step. Uses CampaignStep if present, else fallback to sequence.config. */
 export async function getDelayMsForCampaignStep(
   campaignId: string,
   stepNumber: number
@@ -80,8 +117,10 @@ export async function getDelayMsForCampaignStep(
   const step = await prisma.campaignStep.findUnique({
     where: { campaignId_stepNumber: { campaignId, stepNumber } },
   });
-  if (step) return step.delayDays * 24 * 60 * 60 * 1000;
-  return getDelayMsForStep(stepNumber) ?? 0;
+  const rawMs = step
+    ? step.delayDays * 24 * 60 * 60 * 1000
+    : (getDelayMsForStep(stepNumber) ?? 0);
+  return rawMs > 0 ? rawMs : MIN_STEP_DELAY_MS;
 }
 
 /** Returns max step number for a campaign. Uses CampaignStep count if present, else sequence.config */
@@ -146,13 +185,16 @@ export const createCampaign = async (payload: {
     },
   });
   if (payload.steps?.length) {
-    await prisma.campaignStep.createMany({
-      data: payload.steps.map((s) => ({
+    const resolved = await Promise.all(
+      payload.steps.map(async (s) => ({
         campaignId: campaign.id,
         stepNumber: s.stepNumber,
-        templateId: s.templateId || null,
+        templateId: await resolveTemplateIdForStep(payload.userId, s.templateId || null),
         delayDays: s.delayDays,
-      })),
+      }))
+    );
+    await prisma.campaignStep.createMany({
+      data: resolved,
     });
   }
   if (payload.prospectIds?.length) {
@@ -235,10 +277,153 @@ export const updateCampaignStatus = async (
   return updated;
 };
 
+export const deleteCampaign = async (id: string, userId: string) => {
+  const campaign = await prisma.campaign.findFirst({ where: { id, userId } });
+  if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
+  await prisma.campaign.delete({ where: { id } });
+};
+
+/** Count prospects who opened at least one email in this campaign but have not replied (for What Needs Attention). */
+export const getCampaignOpenedNoReplyCount = async (campaignId: string): Promise<number> => {
+  const opens = await prisma.emailOpenEvent.findMany({
+    where: { email: { campaignId } },
+    select: { email: { select: { prospectId: true } } },
+  });
+  const prospectIds = [...new Set(opens.map((o) => o.email.prospectId).filter(Boolean))] as string[];
+  if (prospectIds.length === 0) return 0;
+  const notReplied = await prisma.campaignProspect.count({
+    where: {
+      campaignId,
+      prospectId: { in: prospectIds },
+      status: { not: "REPLIED" },
+    },
+  });
+  return notReplied;
+};
+
+/** Open rate per step (step number -> open rate %). Derived from campaign emails' idempotencyKey (step N). */
+export const getCampaignMetricsPerStep = async (
+  campaignId: string
+): Promise<Array<{ stepNumber: number; openRate: number }>> => {
+  const emails = await prisma.email.findMany({
+    where: { campaignId, status: "SENT" },
+    select: { id: true, idempotencyKey: true },
+  });
+  const byStep = new Map<number, string[]>();
+  for (const e of emails) {
+    const match = e.idempotencyKey.match(/-step-(\d+)$/);
+    const stepNum = match ? parseInt(match[1], 10) : 1;
+    const ids = byStep.get(stepNum) ?? [];
+    ids.push(e.id);
+    byStep.set(stepNum, ids);
+  }
+  const result: Array<{ stepNumber: number; openRate: number }> = [];
+  for (const [stepNumber, emailIds] of byStep.entries()) {
+    const opens = await prisma.emailOpenEvent.count({
+      where: { emailId: { in: emailIds } },
+    });
+    const openRate = emailIds.length > 0 ? Math.round((opens / emailIds.length) * 100) : 0;
+    result.push({ stepNumber, openRate });
+  }
+  result.sort((a, b) => a.stepNumber - b.stepNumber);
+  return result;
+};
+
 export const getCampaignWithMetrics = async (id: string, userId: string) => {
   const campaign = await getCampaignById(id, userId);
   const metrics = await getCampaignMetrics(id);
-  return { ...campaign, metrics };
+  const openedNoReplyCount = await getCampaignOpenedNoReplyCount(id);
+  const stepMetrics = await getCampaignMetricsPerStep(id);
+  return { ...campaign, metrics, attention: { openedNoReplyCount }, stepMetrics };
+};
+
+export type CampaignActivityItem = {
+  type: "email_opened" | "reply";
+  timestamp: string;
+  description?: string;
+  prospectName?: string;
+};
+
+export const getCampaignActivities = async (
+  campaignId: string,
+  userId: string,
+  limit = 50
+): Promise<CampaignActivityItem[]> => {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: campaignId, userId },
+    select: { id: true },
+  });
+  if (!campaign) throw new ApiError(404, "NOT_FOUND", "Campaign not found");
+
+  const [opens, replies] = await Promise.all([
+    prisma.emailOpenEvent.findMany({
+      where: { email: { campaignId, userId } },
+      include: {
+        email: {
+          select: {
+            id: true,
+            prospectId: true,
+            toEmail: true,
+            subject: true,
+            prospect: {
+              select: { firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: { openedAt: "desc" },
+      take: limit * 3,
+    }),
+    prisma.emailReplyEvent.findMany({
+      where: { email: { campaignId, userId } },
+      include: {
+        email: {
+          select: {
+            toEmail: true,
+            subject: true,
+            prospect: {
+              select: { firstName: true, lastName: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: { repliedAt: "desc" },
+      take: limit,
+    }),
+  ]);
+
+  // One "Email opened" per email (most recent open per email), so Step 1 and Step 2 opens both show
+  const seenEmailIds = new Set<string>();
+  const openItems: CampaignActivityItem[] = [];
+  for (const o of opens) {
+    if (seenEmailIds.has(o.email.id)) continue;
+    seenEmailIds.add(o.email.id);
+    const name =
+      o.email.prospect &&
+      [o.email.prospect.firstName, o.email.prospect.lastName].filter(Boolean).join(" ");
+    openItems.push({
+      type: "email_opened",
+      timestamp: o.openedAt.toISOString(),
+      description: o.email.subject ? `Opened: ${o.email.subject}` : undefined,
+      prospectName: (name && name.trim()) || o.email.toEmail || undefined,
+    });
+  }
+
+  const replyItems: CampaignActivityItem[] = replies.map((r) => {
+    const name =
+      r.email.prospect &&
+      [r.email.prospect.firstName, r.email.prospect.lastName].filter(Boolean).join(" ");
+    return {
+      type: "reply" as const,
+      timestamp: r.repliedAt.toISOString(),
+      description: r.replySubject ? `Replied: ${r.replySubject}` : "Replied",
+      prospectName: (name && name.trim()) || r.email.toEmail || undefined,
+    };
+  });
+
+  const items = [...openItems, ...replyItems];
+  items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return items.slice(0, limit);
 };
 
 export const getCampaignProspects = async (campaignId: string, userId: string) => {
@@ -319,9 +504,19 @@ export const executeCampaignStep = async (payload: {
       vars
     );
   } else {
-    subject = `Follow-up (Step ${payload.stepNumber})`;
-    bodyHtml = `<p>Follow-up step ${payload.stepNumber}.</p>`;
-    bodyText = `Follow-up step ${payload.stepNumber}.`;
+    const prebuilt = getPrebuiltTemplate(stepRow?.templateId ?? null);
+    if (prebuilt) {
+      subject = renderTemplate(prebuilt.title, vars);
+      bodyHtml = renderTemplate(prebuilt.content, vars);
+      bodyText = renderTemplate(
+        prebuilt.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+        vars
+      );
+    } else {
+      subject = `Follow-up (Step ${payload.stepNumber})`;
+      bodyHtml = `<p>Follow-up step ${payload.stepNumber}.</p>`;
+      bodyText = `Follow-up step ${payload.stepNumber}.`;
+    }
   }
 
   const idempotencyKey = `${payload.campaignId}-${payload.prospectId}-step-${payload.stepNumber}`;
