@@ -16,6 +16,8 @@ export interface CampaignStepItem {
   stepNumber: number
   templateId: string | null
   delayDays: number
+  subjectOverride?: string | null
+  contentOverride?: string | null
   template?: { id: string; title: string; content: string }
 }
 
@@ -95,7 +97,16 @@ export const campaignsApi = {
     )
   },
 
-  upsertSteps: async (campaignId: string, steps: { stepNumber: number; templateId: string | null; delayDays: number }[]): Promise<CampaignStepItem[]> => {
+  upsertSteps: async (
+    campaignId: string,
+    steps: {
+      stepNumber: number
+      templateId: string | null
+      delayDays: number
+      subjectOverride?: string | null
+      contentOverride?: string | null
+    }[]
+  ): Promise<CampaignStepItem[]> => {
     return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`, {
       method: 'PUT',
       body: JSON.stringify({ steps }),
@@ -110,7 +121,13 @@ export const campaignsApi = {
     workspaceId?: string | null
     prospectIds?: string[]
     status?: CampaignStatus
-    steps?: { stepNumber: number; templateId: string | null; delayDays: number }[]
+    steps?: {
+      stepNumber: number
+      templateId: string | null
+      delayDays: number
+      subjectOverride?: string | null
+      contentOverride?: string | null
+    }[]
   }): Promise<Campaign> => {
     return apiRequest<Campaign>(`${API_BASE}/campaigns`, {
       method: 'POST',

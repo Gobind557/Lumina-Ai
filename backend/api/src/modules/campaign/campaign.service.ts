@@ -61,7 +61,13 @@ export const getCampaignById = async (id: string, userId: string) => {
   return campaign;
 };
 
-export type CampaignStepInput = { stepNumber: number; templateId: string | null; delayDays: number };
+export type CampaignStepInput = {
+  stepNumber: number;
+  templateId: string | null;
+  delayDays: number;
+  subjectOverride?: string | null;
+  contentOverride?: string | null;
+};
 
 export const getCampaignSteps = async (campaignId: string, userId: string) => {
   const campaign = await prisma.campaign.findFirst({
@@ -97,6 +103,8 @@ export const upsertCampaignSteps = async (
         stepNumber: s.stepNumber,
         templateId: await resolveTemplateIdForStep(userId, s.templateId || null),
         delayDays: s.delayDays,
+        subjectOverride: s.subjectOverride ?? null,
+        contentOverride: s.contentOverride ?? null,
       }))
     );
     await prisma.campaignStep.createMany({
@@ -191,6 +199,8 @@ export const createCampaign = async (payload: {
         stepNumber: s.stepNumber,
         templateId: await resolveTemplateIdForStep(payload.userId, s.templateId || null),
         delayDays: s.delayDays,
+        subjectOverride: s.subjectOverride ?? null,
+        contentOverride: s.contentOverride ?? null,
       }))
     );
     await prisma.campaignStep.createMany({
@@ -492,19 +502,43 @@ export const executeCampaignStep = async (payload: {
     email: prospect.email,
   };
 
+  type StepWithOverrides = typeof stepRow & {
+    subjectOverride?: string | null;
+    contentOverride?: string | null;
+  };
+  const step = stepRow as StepWithOverrides | null;
+
   let subject: string;
   let bodyHtml: string;
   let bodyText: string;
 
-  if (stepRow?.template) {
-    subject = renderTemplate(stepRow.template.title, vars);
-    bodyHtml = renderTemplate(stepRow.template.content, vars);
+  if (step?.subjectOverride != null || step?.contentOverride != null) {
+    subject =
+      step.subjectOverride != null
+        ? renderTemplate(step.subjectOverride, vars)
+        : step?.template
+          ? renderTemplate(step.template.title, vars)
+          : `Follow-up (Step ${payload.stepNumber})`;
+    const content =
+      step.contentOverride ??
+      step?.template?.content ??
+      (step?.templateId ? getPrebuiltTemplate(step.templateId)?.content : null);
+    const rawBody = content ?? "";
+    bodyHtml = renderTemplate(rawBody, vars);
     bodyText = renderTemplate(
-      stepRow.template.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+      rawBody.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+      vars
+    );
+  } else if (step?.template) {
+    const t = step.template;
+    subject = renderTemplate(t.title, vars);
+    bodyHtml = renderTemplate(t.content, vars);
+    bodyText = renderTemplate(
+      t.content.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
       vars
     );
   } else {
-    const prebuilt = getPrebuiltTemplate(stepRow?.templateId ?? null);
+    const prebuilt = getPrebuiltTemplate(step?.templateId ?? null);
     if (prebuilt) {
       subject = renderTemplate(prebuilt.title, vars);
       bodyHtml = renderTemplate(prebuilt.content, vars);

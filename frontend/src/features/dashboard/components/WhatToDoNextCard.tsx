@@ -1,6 +1,8 @@
 import { TrendingUp, Phone, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useDashboardNextActions } from "../hooks/useDashboard";
 import type { NextAction } from "../api/dashboard.api";
+import { ROUTES } from "@/shared/constants";
 
 const getInitials = (name: string) => {
   return name
@@ -22,6 +24,7 @@ const getActionIcon = (actionType: NextAction["actionType"]) => {
 };
 
 export default function WhatToDoNextCard() {
+  const navigate = useNavigate();
   const { nextActions, loading } = useDashboardNextActions();
 
   let content: React.ReactNode;
@@ -74,7 +77,11 @@ export default function WhatToDoNextCard() {
           {action.reasoning && (
             <p className="text-xs text-slate-400 mb-2">{action.reasoning}</p>
           )}
-          <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors relative">
+          <button
+            type="button"
+            onClick={() => navigate(ROUTES.COMPOSE)}
+            className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors relative"
+          >
             {action.actionLabel}
             {action.buttonLabel && (
               <span className="ml-1.5 text-[10px] text-slate-500">

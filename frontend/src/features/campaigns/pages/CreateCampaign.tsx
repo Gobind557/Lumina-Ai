@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { ChevronDown, Plus, Trash2, ExternalLink, FilePlus } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, FilePlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES, API_ENDPOINTS } from '@/shared/constants'
 import { apiRequest } from '@/shared/api/client'
@@ -20,6 +20,8 @@ interface SequenceStep {
   stepNumber: number
   templateId: string
   delayDays: number
+  subjectOverride?: string
+  contentOverride?: string
 }
 
 function prospectDisplayName(p: { first_name: string | null; last_name: string | null; email: string }) {
@@ -39,6 +41,9 @@ export default function CreateCampaign() {
   const [steps, setSteps] = useState<SequenceStep[]>(() =>
     DEFAULT_DELAYS.map((d, i) => ({ stepNumber: i + 1, templateId: '', delayDays: d }))
   )
+  const [customizeStepIdx, setCustomizeStepIdx] = useState<number | null>(null)
+  const [customizeSubject, setCustomizeSubject] = useState('')
+  const [customizeContent, setCustomizeContent] = useState('')
 
   useEffect(() => {
     const load = async () => {
@@ -82,7 +87,16 @@ export default function CreateCampaign() {
   )
 
   const stepsToSend = useMemo(
-    () => steps.filter((s) => s.templateId).map((s) => ({ stepNumber: s.stepNumber, templateId: s.templateId, delayDays: s.delayDays })),
+    () =>
+      steps
+        .filter((s) => s.templateId)
+        .map((s) => ({
+          stepNumber: s.stepNumber,
+          templateId: s.templateId,
+          delayDays: s.delayDays,
+          subjectOverride: s.subjectOverride || null,
+          contentOverride: s.contentOverride || null,
+        })),
     [steps]
   )
 
@@ -115,7 +129,11 @@ export default function CreateCampaign() {
     }
   }
 
+  const customStep = customizeStepIdx != null ? steps[customizeStepIdx] : null
+  const customTemplate = customStep ? templates.find((t) => t.id === customStep.templateId) : null
+
   return (
+    <>
     <div className="min-h-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
 
       <div className="relative z-10 px-6 pt-6 pb-12 max-w-3xl mx-auto space-y-4">
@@ -252,19 +270,36 @@ export default function CreateCampaign() {
                       <div className="rounded-lg border border-slate-200/50 bg-slate-50/80 p-3 text-xs">
                         <div className="flex items-center justify-between gap-2 mb-2">
                           <span className="text-slate-600 font-medium">Preview</span>
-                          <a
-                            href={ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)}
-                            onClick={(e) => { e.preventDefault(); navigate(ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)) }}
-                            className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
-                          >
-                            <ExternalLink className="w-3 h-3" /> Edit template
-                          </a>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCustomizeSubject(s.subjectOverride ?? selectedTemplate.title ?? '')
+                                setCustomizeContent(s.contentOverride ?? selectedTemplate.content ?? '')
+                                setCustomizeStepIdx(idx)
+                              }}
+                              className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                            >
+                              Customize for this step
+                            </button>
+                            <a
+                              href={ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)}
+                              onClick={(e) => { e.preventDefault(); navigate(ROUTES.TEMPLATES_EDIT.replace(':id', selectedTemplate.id)) }}
+                              className="text-slate-500 hover:text-slate-700 text-[10px]"
+                              title="Edit the shared template (affects all campaigns using it)"
+                            >
+                              Edit template (all uses)
+                            </a>
+                          </div>
                         </div>
                         <div className="text-slate-700 whitespace-pre-wrap line-clamp-4 max-h-24 overflow-y-auto">
-                          {selectedTemplate.content
-                            ? selectedTemplate.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
+                          {(s.contentOverride ?? selectedTemplate.content)
+                            ? (s.contentOverride ?? selectedTemplate.content)!.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200)
                             : 'No content'}
                         </div>
+                        {s.subjectOverride != null && (
+                          <p className="text-[10px] text-indigo-600 mt-1">Subject customized for this step</p>
+                        )}
                         <p className="text-[10px] text-slate-500 mt-2">Variables: {TEMPLATE_VARS.join(', ')}</p>
                       </div>
                     )}
@@ -347,5 +382,67 @@ export default function CreateCampaign() {
         </div>
       </div>
     </div>
+
+    {customizeStepIdx != null && customStep && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setCustomizeStepIdx(null)}>
+        <div
+          className="bg-white rounded-xl shadow-xl border border-slate-200/70 max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="p-4 border-b border-slate-200/70">
+            <h3 className="text-sm font-semibold text-slate-900">Customize for Step {customStep.stepNumber}</h3>
+            <p className="text-[11px] text-slate-500 mt-1">Changes apply only to this step. The shared template is unchanged.</p>
+          </div>
+          <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Subject line</label>
+              <input
+                type="text"
+                value={customizeSubject}
+                onChange={(e) => setCustomizeSubject(e.target.value)}
+                placeholder={customTemplate?.title ?? 'Subject'}
+                className="w-full rounded-lg border border-slate-200/70 px-3 py-2 text-sm text-slate-900 bg-white"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Body (use {TEMPLATE_VARS.join(', ')})</label>
+              <textarea
+                value={customizeContent}
+                onChange={(e) => setCustomizeContent(e.target.value)}
+                placeholder="Email body..."
+                rows={10}
+                className="w-full rounded-lg border border-slate-200/70 px-3 py-2 text-sm text-slate-900 bg-white resize-y min-h-[120px]"
+              />
+            </div>
+          </div>
+          <div className="p-4 border-t border-slate-200/70 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setCustomizeStepIdx(null)}
+              className="px-3 py-1.5 rounded-lg border border-slate-200/70 text-slate-600 text-xs bg-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setSteps((prev) =>
+                  prev.map((p, i) =>
+                    i === customizeStepIdx
+                      ? { ...p, subjectOverride: customizeSubject.trim() || undefined, contentOverride: customizeContent.trim() || undefined }
+                      : p
+                  )
+                )
+                setCustomizeStepIdx(null)
+              }}
+              className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
+            >
+              Save for this step
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }

@@ -128,7 +128,11 @@ export const upsertSteps = async (
       const stepNumber = typeof o.stepNumber === "number" ? o.stepNumber : i + 1;
       const templateId = typeof o.templateId === "string" ? o.templateId : "";
       const delayDays = typeof o.delayDays === "number" ? o.delayDays : 0;
-      return { stepNumber, templateId, delayDays };
+      const subjectOverride =
+        typeof o.subjectOverride === "string" ? o.subjectOverride : null;
+      const contentOverride =
+        typeof o.contentOverride === "string" ? o.contentOverride : null;
+      return { stepNumber, templateId, delayDays, subjectOverride, contentOverride };
     });
     const result = await upsertCampaignSteps(id, userId, validated);
     res.json(result);

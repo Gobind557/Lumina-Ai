@@ -7,13 +7,18 @@ function formatBestTime(bestDayOfWeek: number, bestHour: number): string {
   const day =
     dayLabels[bestDayOfWeek] ??
     new Date().toLocaleDateString(undefined, { weekday: "short" });
-  const hour = bestHour ?? 9;
+  const hour = typeof bestHour === "number" ? bestHour : 9;
   const date = new Date();
   date.setHours(hour, 0, 0, 0);
-  return `${day} ${date.toLocaleTimeString(undefined, {
+  let timeStr = date.toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
-  })}`;
+    hour12: true,
+  });
+  if (timeStr.startsWith("0:") || timeStr === "0:00") {
+    timeStr = "12:00 AM";
+  }
+  return `${day} ${timeStr}`;
 }
 
 export default function BestTimeCard() {

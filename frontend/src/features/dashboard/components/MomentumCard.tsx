@@ -1,9 +1,11 @@
-import { ExternalLink, ChevronDown, Flame, Mail } from "lucide-react";
+import { ChevronDown, Flame, Mail } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   useDashboardMomentum,
   useDashboardTimeline,
 } from "../hooks/useDashboard";
 import { useDashboardFilters } from "../../../shared/context/DashboardFilterContext";
+import { ROUTES } from "@/shared/constants";
 
 function formatSentAt(sentAt: Date | string | null): string {
   if (!sentAt) return "—";
@@ -36,6 +38,7 @@ const getInitials = (name: string) => {
 };
 
 export default function MomentumCard() {
+  const navigate = useNavigate();
   const { momentum, loading } = useDashboardMomentum();
   const { weekOffset } = useDashboardFilters();
   // Fetch several weeks so "Recent emails" can respect the same header filter
@@ -123,10 +126,6 @@ export default function MomentumCard() {
         {/* Header */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <h3 className="text-lg font-semibold text-slate-900">Momentum</h3>
-          <button className="text-sm text-indigo-600 hover:text-indigo-500 transition-colors flex items-center gap-1">
-            View All
-            <ExternalLink className="w-3 h-3" />
-          </button>
         </div>
 
         {/* Activities + Recent emails - scrollable list (scrollbar visible when content overflows) */}
@@ -165,7 +164,11 @@ export default function MomentumCard() {
                     <p className="text-xs text-slate-500 mb-2">
                       {activity.activity}
                     </p>
-                    <button className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => navigate(ROUTES.COMPOSE)}
+                      className="px-3 py-1.5 bg-white/80 hover:bg-white border border-slate-200/70 rounded-lg text-xs text-slate-700 transition-colors flex items-center gap-1"
+                    >
                       {activity.actionLabel}
                       {activity.action === "view" && (
                         <ChevronDown className="w-3 h-3" />

@@ -11,6 +11,7 @@ export const templateRepository = {
   }) => {
     const where = {
       userId: params.userId,
+      description: { not: { startsWith: "Prebuilt:" } },
       ...(params.workspaceId ? { workspaceId: params.workspaceId } : {}),
       ...(params.category ? { category: params.category } : {}),
       ...(params.search
