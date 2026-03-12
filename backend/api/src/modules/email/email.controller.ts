@@ -27,7 +27,7 @@ const sendSchema = z.object({
 
 export const getDraft = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = req.user?.id as string;
+    const userId = (req.user as any)?.id as string;
     const draft = await getDraftById(String(req.params.id), userId);
     return res.json({
       id: String(draft.id),
@@ -54,7 +54,7 @@ export const upsertDraftHandler = async (
     const payload = upsertDraftSchema.parse(req.body);
     const draft = await upsertDraft({
       id: payload.id,
-      userId: (req.user?.id ?? "") as string,
+        userId: ((req.user as any)?.id ?? "") as string,
       prospectId: payload.prospect_id,
       subject: payload.subject ?? null,
       bodyHtml: payload.body_html ?? null,
@@ -73,7 +73,7 @@ export const deleteDraftHandler = async (
   next: NextFunction
 ) => {
   try {
-    await deleteDraft(String(req.params.id), (req.user?.id ?? "") as string);
+    await deleteDraft(String(req.params.id), ((req.user as any)?.id ?? "") as string);
     return res.status(204).send();
   } catch (error) {
     return next(error);
@@ -83,7 +83,7 @@ export const deleteDraftHandler = async (
 export const sendEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const payload = sendSchema.parse(req.body);
-    const draft = await emailRepository.findDraft(payload.draft_id, (req.user?.id ?? "") as string);
+    const draft = await emailRepository.findDraft(payload.draft_id, ((req.user as any)?.id ?? "") as string);
     if (!draft) {
       return res.status(404).json({
         error: {
@@ -97,7 +97,7 @@ export const sendEmail = async (req: Request, res: Response, next: NextFunction)
     }
 
     const email = await createEmailSend({
-      userId: (req.user?.id ?? "") as string,
+      userId: ((req.user as any)?.id ?? "") as string,
       workspaceId: draft.workspaceId,
       prospectId: draft.prospectId,
       draftId: draft.id,
@@ -121,7 +121,7 @@ export const sendEmail = async (req: Request, res: Response, next: NextFunction)
 
 export const getEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const email = await getEmailById(String(req.params.id), (req.user?.id ?? "") as string);
+    const email = await getEmailById(String(req.params.id), ((req.user as any)?.id ?? "") as string);
     return res.json({
       id: email.id,
       draft_id: email.draftId,
