@@ -18,7 +18,7 @@ export const getStats = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const stats = await getDashboardStats(userId);
     res.json(stats);
   } catch (error) {
@@ -35,7 +35,7 @@ export const getTimeline = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const days = req.query.days ? parseInt(String(req.query.days)) : 7;
     const timeline = await getDashboardTimeline(userId, days);
     res.json(timeline);
@@ -53,7 +53,7 @@ export const getMomentum = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const momentum = await getDashboardMomentum(userId);
     res.json(momentum);
   } catch (error) {
@@ -70,7 +70,7 @@ export const getCampaigns = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const campaigns = await getDashboardCampaigns(userId);
     res.json(campaigns);
   } catch (error) {
@@ -87,7 +87,7 @@ export const getBestTime = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const bestTime = await getDashboardBestTime(userId);
     res.json(bestTime);
   } catch (error) {
@@ -104,7 +104,7 @@ export const getNextActions = async (
     if (!req.user) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const userId = req.user.id;
+    const userId = (req.user as any).id as string;
     const nextActions = await getDashboardNextActions(userId);
     res.json(nextActions);
   } catch (error) {

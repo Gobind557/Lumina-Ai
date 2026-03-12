@@ -41,7 +41,7 @@ const updateSchema = z.object({
 });
 
 function requireUserId(req: Request): string {
-  const userId = req.user?.id;
+  const userId = (req.user as any)?.id as string | undefined;
   if (!userId || typeof userId !== "string") throw new ApiError(401, "UNAUTHORIZED", "Missing user context");
   return userId;
 }

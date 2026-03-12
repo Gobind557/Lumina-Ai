@@ -1,4 +1,3 @@
-import { CampaignProspectStatus } from "@prisma/client";
 import { subscribe } from "../../infrastructure/eventBus";
 import { enqueueCampaignStep } from "../../infrastructure/queue";
 import {
@@ -18,6 +17,8 @@ import {
   getDelayMsForCampaignStep,
   getCampaignMaxStep,
 } from "./campaign.service";
+
+type CampaignProspectStatus = "ACTIVE" | "REPLIED" | "COMPLETED";
 
 /**
  * Campaign engine consumer: reacts to email lifecycle events and progresses campaign state.
