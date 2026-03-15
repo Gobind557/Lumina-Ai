@@ -28,7 +28,12 @@ export const emailRepository = {
       bodyText: payload.bodyText ?? null,
     };
     if (payload.id) {
-      return prisma.emailDraft.update({ where: { id: payload.id }, data });
+      const existing = await prisma.emailDraft.findFirst({
+        where: { id: payload.id, userId: payload.userId },
+      });
+      if (existing) {
+        return prisma.emailDraft.update({ where: { id: payload.id }, data });
+      }
     }
     return prisma.emailDraft.create({ data });
   },

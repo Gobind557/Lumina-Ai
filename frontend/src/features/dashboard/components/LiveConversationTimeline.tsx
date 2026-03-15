@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   LineChart,
   Line,
@@ -12,9 +11,6 @@ import { useDashboardTimeline } from "../hooks/useDashboard";
 import { useDashboardFilters } from "../../../shared/context/DashboardFilterContext";
 
 export default function LiveConversationTimeline() {
-  const [activeTab, setActiveTab] = useState<"today" | "replies" | "closed">(
-    "today",
-  );
   const { weekOffset } = useDashboardFilters();
   // Fetch several weeks so the header "This Week" filter can jump between 7‑day windows.
   const { timeline, loading } = useDashboardTimeline(42);
@@ -114,39 +110,15 @@ export default function LiveConversationTimeline() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-3 lg:mb-4">
-          <button
-            onClick={() => setActiveTab("today")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "today"
-                ? "bg-indigo-600 text-white"
-                : "bg-white/70 text-slate-600 hover:bg-white"
-            }`}
-          >
-            Today
-          </button>
-          <button
-            onClick={() => setActiveTab("replies")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "replies"
-                ? "bg-indigo-600 text-white"
-                : "bg-white/70 text-slate-600 hover:bg-white"
-            }`}
-          >
+        <div className="flex items-center gap-4 mb-3 lg:mb-4">
+          <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#60a5fa]" aria-hidden />
+            Open
+          </span>
+          <span className="text-sm font-medium text-slate-600 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#a78bfa]" aria-hidden />
             Replies
-            <div className="w-2 h-2 rounded-full bg-indigo-400" />
-          </button>
-          <button
-            onClick={() => setActiveTab("closed")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
-              activeTab === "closed"
-                ? "bg-purple-600 text-white"
-                : "bg-white/70 text-slate-600 hover:bg-white"
-            }`}
-          >
-            Closed
-            <div className="w-2 h-2 rounded-full bg-purple-400" />
-          </button>
+          </span>
         </div>
 
         {chartData.length > 0 ? (

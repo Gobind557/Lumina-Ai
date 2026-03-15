@@ -1,24 +1,22 @@
 import { Clock } from "lucide-react";
 import { useDashboardBestTime } from "../hooks/useDashboard";
 
-const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
+/**
+ * Backend returns best hour and day of week in UTC (server timezone).
+ * Convert that UTC moment to the user's local timezone for display.
+ */
 function formatBestTime(bestDayOfWeek: number, bestHour: number): string {
-  const day =
-    dayLabels[bestDayOfWeek] ??
-    new Date().toLocaleDateString(undefined, { weekday: "short" });
+  const dayOfWeek = typeof bestDayOfWeek === "number" ? bestDayOfWeek : 0;
   const hour = typeof bestHour === "number" ? bestHour : 9;
-  const date = new Date();
-  date.setHours(hour, 0, 0, 0);
-  let timeStr = date.toLocaleTimeString("en-US", {
+  // Jan 4, 1970 was a Sunday (day 0); create UTC date for that weekday and hour
+  const utcDate = new Date(Date.UTC(1970, 0, 4 + dayOfWeek, hour, 0, 0));
+  const dayStr = utcDate.toLocaleDateString(undefined, { weekday: "short" });
+  const timeStr = utcDate.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
     hour12: true,
   });
-  if (timeStr.startsWith("0:") || timeStr === "0:00") {
-    timeStr = "12:00 AM";
-  }
-  return `${day} ${timeStr}`;
+  return `${dayStr} ${timeStr}`;
 }
 
 export default function BestTimeCard() {
