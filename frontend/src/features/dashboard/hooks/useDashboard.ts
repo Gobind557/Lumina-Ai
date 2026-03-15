@@ -1,10 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   dashboardApi,
-  type DashboardStats,
-  type TimelineData,
-  type MomentumData,
-  type CampaignSummary,
   type BestTimeData,
   type NextActionsData,
 } from '../api/dashboard.api'

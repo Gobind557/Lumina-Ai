@@ -37,7 +37,7 @@ export default function CreateCampaign() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [sequenceExpanded, setSequenceExpanded] = useState(true)
   const [templates, setTemplates] = useState<TemplateOption[]>([])
-  const [templatesLoading, setTemplatesLoading] = useState(true)
+  const [, setTemplatesLoading] = useState(true)
   const [steps, setSteps] = useState<SequenceStep[]>(() =>
     DEFAULT_DELAYS.map((d, i) => ({ stepNumber: i + 1, templateId: '', delayDays: d }))
   )

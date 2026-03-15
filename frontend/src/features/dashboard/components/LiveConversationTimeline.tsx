@@ -11,18 +11,6 @@ import {
 import { useDashboardTimeline } from "../hooks/useDashboard";
 import { useDashboardFilters } from "../../../shared/context/DashboardFilterContext";
 
-function formatSentAt(sentAt: Date | string | null): string {
-  if (!sentAt) return "—";
-  const d = new Date(sentAt);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 60) return `${diffMins}m ago`;
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 export default function LiveConversationTimeline() {
   const [activeTab, setActiveTab] = useState<"today" | "replies" | "closed">(
     "today",
@@ -45,12 +33,9 @@ export default function LiveConversationTimeline() {
   const startIndex = Math.max(0, endIndex - DAYS_PER_WEEK);
   const chartData = allChartData.slice(startIndex, endIndex);
 
-  const recentEmails = (timeline?.emails ?? []).slice(0, 8);
-
   // Tooltip reads from chartData by day so it always matches the graph (Recharts payload can show wrong values)
   const CustomTooltip = ({
     active,
-    payload,
     label,
   }: {
     active?: boolean;
