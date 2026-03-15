@@ -9,6 +9,7 @@
     "dev:all": "ts-node-dev --respawn --transpile-only src/run-all.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "start:all": "node dist/run-all.js",
     "worker:email": "ts-node-dev --respawn --transpile-only src/modules/email/email.worker.ts",
     "consumer:analytics": "ts-node-dev --respawn --transpile-only src/modules/analytics/analytics.consumer.ts",
     "consumer:campaign": "ts-node-dev --respawn --transpile-only src/modules/campaign/campaign.consumer.ts",
