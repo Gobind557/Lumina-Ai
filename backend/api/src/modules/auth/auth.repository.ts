@@ -14,21 +14,26 @@ export const authRepository = {
       data: { ...data, role: "user" },
     }),
 
-  findOrCreateOAuthUser: (data: {
+  findOrCreateOAuthUser: async (data: {
     email: string;
     firstName?: string | null;
     lastName?: string | null;
-  }) => {
-    return prisma.user.upsert({
-      where: { email: data.email },
-      create: {
+  }): Promise<{ user: { id: string; email: string; role: string }; isNew: boolean }> => {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) {
+      return { user: { id: existing.id, email: existing.email, role: existing.role }, isNew: false };
+    }
+    const user = await prisma.user.create({
+      data: {
         email: data.email,
         passwordHash: null,
         firstName: data.firstName ?? null,
         lastName: data.lastName ?? null,
         role: "user",
       },
-      update: {},
     });
+    return { user: { id: user.id, email: user.email, role: user.role }, isNew: true };
   },
+
+  deleteUser: (id: string) => prisma.user.delete({ where: { id } }),
 };

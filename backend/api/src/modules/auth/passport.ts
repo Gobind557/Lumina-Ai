@@ -15,12 +15,12 @@ passport.use(
       try {
         const email = profile.emails?.[0]?.value;
         if (!email) return done(new Error("Google profile missing email"));
-        const user = await findOrCreateOAuthUser({
+        const { user, isNew } = await findOrCreateOAuthUser({
           email,
           firstName: profile.name?.givenName ?? null,
           lastName: profile.name?.familyName ?? null,
         });
-        return done(null, user);
+        return done(null, user, { isNew });
       } catch (error) {
         return done(error as Error);
       }
@@ -43,7 +43,7 @@ passport.use(
           (profile as any).emailAddress ||
           null;
         if (!email) return done(new Error("LinkedIn profile missing email"));
-        const user = await findOrCreateOAuthUser({
+        const { user } = await findOrCreateOAuthUser({
           email,
           firstName: profile.name?.givenName ?? null,
           lastName: profile.name?.familyName ?? null,

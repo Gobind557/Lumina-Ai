@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { Mail, Lock, User, Eye } from 'lucide-react'
 import { apiRequest } from '@/shared/utils'
-import { ROUTES, AUTH_GOOGLE_URL } from '@/shared/constants'
+import { ROUTES, AUTH_GOOGLE_SIGNUP_URL } from '@/shared/constants'
 
 export default function Signup() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const oauthNew = searchParams.get('oauth_new') === '1'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,6 +94,11 @@ export default function Signup() {
             </div>
             <h1 className="text-xl font-semibold text-slate-900">Get Started with Lumina</h1>
             <p className="text-sm text-slate-500 mt-1">Sign up for free, no credit card required</p>
+            {oauthNew && (
+              <div className="mt-3 text-sm text-amber-700 bg-amber-50 border border-amber-200/70 rounded-lg px-3 py-2">
+                New account detected. Please sign up below (e.g. with Google) to create your account.
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -176,7 +183,7 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => {
-                window.location.href = AUTH_GOOGLE_URL
+                window.location.href = AUTH_GOOGLE_SIGNUP_URL
               }}
               className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors"
             >
@@ -205,26 +212,7 @@ export default function Signup() {
               </svg>
               Sign up with Google
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = '/api/auth/linkedin'
-              }}
-              className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                aria-label="LinkedIn"
-              >
-                <path
-                  fill="#0A66C2"
-                  d="M20.45 20.45H17.1v-5.4c0-1.3-.03-2.97-1.8-2.97-1.8 0-2.07 1.4-2.07 2.86v5.51H9.9V9h3.22v1.56h.05c.45-.85 1.55-1.75 3.2-1.75 3.43 0 4.06 2.26 4.06 5.2v6.44zM5.34 7.48a1.94 1.94 0 1 1 0-3.88 1.94 1.94 0 0 1 0 3.88zM7 20.45H3.68V9H7v11.45zM22.22 2H1.78C.8 2 0 2.78 0 3.75v16.5C0 21.22.8 22 1.78 22h20.44c.98 0 1.78-.78 1.78-1.75V3.75C24 2.78 23.2 2 22.22 2z"
-                />
-              </svg>
-              Sign up with Linkedin
-            </button>
+            {/* LinkedIn OAuth hidden for now */}
           </div>
 
           <div className="mt-6 text-center text-sm text-slate-500">
