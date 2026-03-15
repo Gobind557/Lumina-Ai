@@ -264,12 +264,6 @@ export default function Prospects() {
                       type="button"
                       className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
                     >
-                      Add to sequence (coming soon)
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
-                    >
                       Export selected (coming soon)
                     </button>
                     <div className="px-3 py-2 border-t border-slate-100 text-[11px] text-slate-500">
@@ -406,14 +400,11 @@ export default function Prospects() {
                             <span className="text-sm text-slate-700">{status}</span>
                           </div>
                         </td>
-                        <td className="py-3 px-2 text-sm text-slate-700">
-                          {getSequence(i)}
+                        <td className="py-3 px-2 text-sm text-slate-500">
+                          —
                         </td>
-                        <td className="py-3 px-2">
-                          <div className="flex items-center gap-2 text-sm text-slate-700">
-                            <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                            {getStep(i)}
-                          </div>
+                        <td className="py-3 px-2 text-sm text-slate-500">
+                          —
                         </td>
                         <td className="py-3 px-2 text-sm text-slate-600">
                           {formatLastAction(p.updated_at)}
@@ -590,23 +581,6 @@ export default function Prospects() {
                     autoComplete="off"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
                   />
-                  <div className="relative">
-                    <select
-                      value={addForm.sequence}
-                      onChange={(e) =>
-                        setAddForm((f) => ({ ...f, sequence: e.target.value }))
-                      }
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 appearance-none pr-8"
-                    >
-                      <option value="">Add to sequence</option>
-                      {SEQUENCE_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
                   {createError && (
                     <p className="text-xs text-red-600">{createError.message}</p>
                   )}

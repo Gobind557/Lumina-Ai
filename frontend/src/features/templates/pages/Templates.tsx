@@ -13,10 +13,12 @@ export default function Templates() {
   const [category, setCategory] = useState<CategoryFilter>("All Templates");
   const [myTemplatesFilter, setMyTemplatesFilter] = useState("My Templates");
   const [storedTemplates, setStoredTemplates] = useState<TemplateCardData[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const loadTemplates = async () => {
+      setLoading(true);
       try {
         const response = await apiRequest<{
           templates: {
@@ -51,6 +53,8 @@ export default function Templates() {
         setStoredTemplates(mapped);
       } catch (error) {
         console.error("Failed to load templates", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -119,9 +123,28 @@ export default function Templates() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((template) => (
-            <TemplateCard key={template.id} template={template} />
-          ))}
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="glass-card border border-slate-200/70 rounded-xl p-5 min-h-[220px] animate-pulse"
+                aria-hidden
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="h-6 w-24 rounded-full bg-slate-200/70" />
+                  <span className="h-6 w-6 rounded bg-slate-200/70" />
+                </div>
+                <div className="h-5 w-3/4 rounded bg-slate-200/70 mb-2" />
+                <div className="h-4 w-full rounded bg-slate-200/70 mb-1" />
+                <div className="h-4 w-2/3 rounded bg-slate-200/70 mb-4" />
+                <div className="h-3 w-32 rounded bg-slate-200/70" />
+              </div>
+            ))
+          ) : (
+            filtered.map((template) => (
+              <TemplateCard key={template.id} template={template} />
+            ))
+          )}
         </div>
 
         <div className="mt-10 pt-2 text-center">

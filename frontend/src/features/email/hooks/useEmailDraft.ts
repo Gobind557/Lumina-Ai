@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import type { EmailDraft } from '@/shared/types'
 import { debounce, apiRequest } from '@/shared/utils'
 import { API_ENDPOINTS } from '@/shared/constants'
@@ -15,6 +15,17 @@ export function useEmailDraft(initialDraft?: EmailDraft) {
       updatedAt: new Date(),
     }
   )
+  const appliedInitialId = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!initialDraft?.id) {
+      appliedInitialId.current = null
+      return
+    }
+    if (appliedInitialId.current === initialDraft.id) return
+    appliedInitialId.current = initialDraft.id
+    setDraft(initialDraft)
+  }, [initialDraft?.id, initialDraft?.subject, initialDraft?.content])
 
   const ensureProspectId = useCallback(async () => {
     if (draft.prospectId) return draft.prospectId

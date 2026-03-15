@@ -41,7 +41,11 @@ type ProspectPayload = {
 export default function EmailComposer() {
   const [searchParams] = useSearchParams();
   const templateId = searchParams.get("templateId");
-  const initialDraft = useMemo<EmailDraft | undefined>(() => {
+  const [fetchedTemplateDraft, setFetchedTemplateDraft] =
+    useState<EmailDraft | null>(null);
+  const [templateFetchDone, setTemplateFetchDone] = useState(false);
+
+  const initialDraftFromMock = useMemo<EmailDraft | undefined>(() => {
     if (!templateId) return undefined;
     const template = MOCK_TEMPLATES.find((item) => item.id === templateId);
     if (!template) return undefined;
@@ -49,11 +53,52 @@ export default function EmailComposer() {
     return {
       id: template.id,
       subject: template.title,
-      content: template.description,
+      content: (template as { content?: string }).content ?? template.description,
       createdAt: now,
       updatedAt: now,
     };
   }, [templateId]);
+
+  useEffect(() => {
+    if (!templateId || MOCK_TEMPLATES.some((t) => t.id === templateId)) {
+      setTemplateFetchDone(true);
+      setFetchedTemplateDraft(null);
+      return;
+    }
+    setTemplateFetchDone(false);
+    setFetchedTemplateDraft(null);
+    let cancelled = false;
+    (async () => {
+      try {
+        const t = await apiRequest<{
+          id: string;
+          title: string;
+          description: string;
+          content: string;
+        }>(`${API_ENDPOINTS.TEMPLATES}/${encodeURIComponent(templateId)}`);
+        if (cancelled) return;
+        const now = new Date();
+        setFetchedTemplateDraft({
+          id: t.id,
+          subject: t.title,
+          content: t.content ?? t.description ?? "",
+          createdAt: now,
+          updatedAt: now,
+        });
+      } catch {
+        if (!cancelled) setFetchedTemplateDraft(null);
+      } finally {
+        if (!cancelled) setTemplateFetchDone(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [templateId]);
+
+  const initialDraft = initialDraftFromMock ?? fetchedTemplateDraft ?? undefined;
+  const loadingTemplate =
+    !!templateId && !initialDraftFromMock && !templateFetchDone;
   const { draft, updateSubject, updateContent, updateProspectId, saveDraftNow } =
     useEmailDraft(initialDraft);
   const [aiState, setAIState] = useState<AIState>("idle");
@@ -404,6 +449,17 @@ export default function EmailComposer() {
   const handleSendModeChange = (mode: SendMode) => {
     setSendMode(mode);
   };
+
+  if (loadingTemplate) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="flex flex-col items-center gap-3 text-slate-500">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+          <span className="text-sm font-medium">Loading template…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
