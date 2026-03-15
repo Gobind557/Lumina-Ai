@@ -90,7 +90,6 @@ export default function Prospects() {
     workEmail: '',
     company: '',
     jobTitle: '',
-    sequence: '',
   })
 
   const {
@@ -107,7 +106,7 @@ export default function Prospects() {
   } = useProspects()
 
   const { create, loading: creating, error: createError } = useCreateProspect(() => {
-    setAddForm({ fullName: '', workEmail: '', company: '', jobTitle: '', sequence: '' })
+    setAddForm({ fullName: '', workEmail: '', company: '', jobTitle: '' })
     refetch()
   })
 
