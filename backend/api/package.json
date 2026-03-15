@@ -14,6 +14,7 @@
     "consumer:analytics": "ts-node-dev --respawn --transpile-only src/modules/analytics/analytics.consumer.ts",
     "consumer:campaign": "ts-node-dev --respawn --transpile-only src/modules/campaign/campaign.consumer.ts",
     "lint": "eslint \"src/**/*.ts\"",
+    "check": "npm run build",
     "test": "jest"
   },
   "dependencies": {

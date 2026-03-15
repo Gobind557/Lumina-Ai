@@ -5,7 +5,6 @@ import {
   ChevronDown,
   Download,
   Building2,
-  FileText,
   ChevronLeft,
   ChevronRight,
   ChevronsRight,
@@ -19,7 +18,6 @@ import { useUpdateProspect } from '../hooks/useUpdateProspect'
 
 const PER_PAGE_OPTIONS = [8, 16, 24, 48]
 const STATUS_OPTIONS = ['Active', 'Pending', 'Replied'] as const
-const SEQUENCE_OPTIONS = ['Startup Cold Outreach', 'Enterprise Follow-up', 'Re-engagement']
 const TAGS = [
   { id: 'hot', label: 'Hot Leads', count: 32, variant: 'red' as const },
   { id: 'ent', label: 'Enterprise', count: 18, variant: 'purple' as const },
@@ -29,15 +27,6 @@ const TAGS = [
 // Derive display fields from API prospect (backend may not have status/sequence/step yet)
 function getDisplayStatus(index: number): (typeof STATUS_OPTIONS)[number] {
   return STATUS_OPTIONS[index % STATUS_OPTIONS.length]
-}
-
-function getSequence(index: number): string {
-  return SEQUENCE_OPTIONS[index % SEQUENCE_OPTIONS.length]
-}
-
-function getStep(index: number): string {
-  const steps = ['Step: 1 Initial Email', 'Step: Follow-Up', 'Step: Breakup Email']
-  return steps[index % steps.length]
 }
 
 function formatLastAction(updatedAt: string): string {
