@@ -1,5 +1,13 @@
 // Application constants
 
+/** Backend API base (e.g. https://lumina-ai-j6xx.onrender.com/api or /api for same-origin). */
+export const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '')
+
+/** Full URL for Google OAuth — must hit backend, not frontend. */
+export const AUTH_GOOGLE_URL = `${API_BASE}/auth/google`
+/** Full URL for LinkedIn OAuth. */
+export const AUTH_LINKEDIN_URL = `${API_BASE}/auth/linkedin`
+
 export const ROUTES = {
   LOGIN: '/login',
   SIGNUP: '/signup',

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, Eye } from 'lucide-react'
 import { apiRequest } from '@/shared/utils'
-import { ROUTES } from '@/shared/constants'
+import { ROUTES, AUTH_GOOGLE_URL } from '@/shared/constants'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -145,7 +145,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => {
-                window.location.href = '/api/auth/google'
+                window.location.href = AUTH_GOOGLE_URL
               }}
               className="w-full flex items-center justify-center gap-2 border border-slate-200/70 bg-white/80 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-white transition-colors"
             >
