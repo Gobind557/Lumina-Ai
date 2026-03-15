@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../shared/api/client'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const API_PREFIX = '/api'
 
 export type CampaignStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED'
 
@@ -76,24 +76,24 @@ export const campaignsApi = {
     if (params?.limit != null) search.set('limit', String(params.limit))
     if (params?.offset != null) search.set('offset', String(params.offset))
     const qs = search.toString()
-    return apiRequest<ListCampaignsResponse>(`${API_BASE}/campaigns${qs ? `?${qs}` : ''}`)
+    return apiRequest<ListCampaignsResponse>(`${API_PREFIX}/campaigns${qs ? `?${qs}` : ''}`)
   },
 
   getById: async (id: string): Promise<Campaign> => {
-    return apiRequest<Campaign>(`${API_BASE}/campaigns/${id}`)
+    return apiRequest<Campaign>(`${API_PREFIX}/campaigns/${id}`)
   },
 
   getProspects: async (campaignId: string): Promise<CampaignProspectItem[]> => {
-    return apiRequest<CampaignProspectItem[]>(`${API_BASE}/campaigns/${campaignId}/prospects`)
+    return apiRequest<CampaignProspectItem[]>(`${API_PREFIX}/campaigns/${campaignId}/prospects`)
   },
 
   getSteps: async (campaignId: string): Promise<CampaignStepItem[]> => {
-    return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`)
+    return apiRequest<CampaignStepItem[]>(`${API_PREFIX}/campaigns/${campaignId}/steps`)
   },
 
   getActivities: async (campaignId: string, limit = 50): Promise<{ activities: CampaignActivityItem[] }> => {
     return apiRequest<{ activities: CampaignActivityItem[] }>(
-      `${API_BASE}/campaigns/${campaignId}/activities?limit=${limit}`
+      `${API_PREFIX}/campaigns/${campaignId}/activities?limit=${limit}`
     )
   },
 
@@ -107,7 +107,7 @@ export const campaignsApi = {
       contentOverride?: string | null
     }[]
   ): Promise<CampaignStepItem[]> => {
-    return apiRequest<CampaignStepItem[]>(`${API_BASE}/campaigns/${campaignId}/steps`, {
+    return apiRequest<CampaignStepItem[]>(`${API_PREFIX}/campaigns/${campaignId}/steps`, {
       method: 'PUT',
       body: JSON.stringify({ steps }),
     })
@@ -129,21 +129,21 @@ export const campaignsApi = {
       contentOverride?: string | null
     }[]
   }): Promise<Campaign> => {
-    return apiRequest<Campaign>(`${API_BASE}/campaigns`, {
+    return apiRequest<Campaign>(`${API_PREFIX}/campaigns`, {
       method: 'POST',
       body: JSON.stringify(payload),
     })
   },
 
   updateStatus: async (id: string, status: CampaignStatus): Promise<Campaign> => {
-    return apiRequest<Campaign>(`${API_BASE}/campaigns/${id}/status`, {
+    return apiRequest<Campaign>(`${API_PREFIX}/campaigns/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     })
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiRequest<void>(`${API_BASE}/campaigns/${id}`, {
+    return apiRequest<void>(`${API_PREFIX}/campaigns/${id}`, {
       method: 'DELETE',
     })
   },

@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../shared/api/client'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+const API_PREFIX = '/api'
 
 export interface ProspectApi {
   id: string
@@ -31,11 +31,11 @@ export const prospectsApi = {
     if (params?.limit != null) search.set('limit', String(params.limit))
     if (params?.offset != null) search.set('offset', String(params.offset))
     const qs = search.toString()
-    return apiRequest<ListProspectsResponse>(`${API_BASE}/prospects${qs ? `?${qs}` : ''}`)
+    return apiRequest<ListProspectsResponse>(`${API_PREFIX}/prospects${qs ? `?${qs}` : ''}`)
   },
 
   getById: async (id: string): Promise<ProspectApi> => {
-    return apiRequest<ProspectApi>(`${API_BASE}/prospects/${id}`)
+    return apiRequest<ProspectApi>(`${API_PREFIX}/prospects/${id}`)
   },
 
   create: async (payload: {
@@ -46,7 +46,7 @@ export const prospectsApi = {
     job_title?: string | null
     custom_fields?: Record<string, unknown>
   }): Promise<ProspectApi> => {
-    return apiRequest<ProspectApi>(`${API_BASE}/prospects`, {
+    return apiRequest<ProspectApi>(`${API_PREFIX}/prospects`, {
       method: 'POST',
       body: JSON.stringify(payload),
     })
@@ -63,13 +63,13 @@ export const prospectsApi = {
       custom_fields: Record<string, unknown>
     }>
   ): Promise<ProspectApi> => {
-    return apiRequest<ProspectApi>(`${API_BASE}/prospects/${id}`, {
+    return apiRequest<ProspectApi>(`${API_PREFIX}/prospects/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     })
   },
 
   delete: async (id: string): Promise<void> => {
-    return apiRequest<void>(`${API_BASE}/prospects/${id}`, { method: 'DELETE' })
+    return apiRequest<void>(`${API_PREFIX}/prospects/${id}`, { method: 'DELETE' })
   },
 }

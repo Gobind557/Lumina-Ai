@@ -1,6 +1,7 @@
 import { apiRequest } from '../../../shared/api/client'
 
-const API_BASE = import.meta.env.VITE_API_URL || '/api'
+/** All backend routes are under /api; client prepends origin when VITE_API_URL is set. */
+const API_PREFIX = '/api'
 
 export interface DashboardStats {
   emails: {
@@ -96,26 +97,26 @@ export interface NextActionsData {
 
 export const dashboardApi = {
   getStats: async (): Promise<DashboardStats> => {
-    return apiRequest<DashboardStats>(`${API_BASE}/dashboard/stats`)
+    return apiRequest<DashboardStats>(`${API_PREFIX}/dashboard/stats`)
   },
 
   getTimeline: async (days: number = 7): Promise<TimelineData> => {
-    return apiRequest<TimelineData>(`${API_BASE}/dashboard/timeline?days=${days}`)
+    return apiRequest<TimelineData>(`${API_PREFIX}/dashboard/timeline?days=${days}`)
   },
 
   getMomentum: async (): Promise<MomentumData> => {
-    return apiRequest<MomentumData>(`${API_BASE}/dashboard/momentum`)
+    return apiRequest<MomentumData>(`${API_PREFIX}/dashboard/momentum`)
   },
 
   getCampaigns: async (): Promise<CampaignSummary[]> => {
-    return apiRequest<CampaignSummary[]>(`${API_BASE}/dashboard/campaigns`)
+    return apiRequest<CampaignSummary[]>(`${API_PREFIX}/dashboard/campaigns`)
   },
 
   getBestTime: async (): Promise<BestTimeData> => {
-    return apiRequest<BestTimeData>(`${API_BASE}/dashboard/best-time`)
+    return apiRequest<BestTimeData>(`${API_PREFIX}/dashboard/best-time`)
   },
 
   getNextActions: async (): Promise<NextActionsData> => {
-    return apiRequest<NextActionsData>(`${API_BASE}/dashboard/next-actions`)
+    return apiRequest<NextActionsData>(`${API_PREFIX}/dashboard/next-actions`)
   },
 }
