@@ -51,7 +51,7 @@ export default function EmailComposer() {
     if (!template) return undefined;
     const now = new Date();
     return {
-      id: template.id,
+      id: "",
       subject: template.title,
       content: (template as { content?: string }).content ?? template.description,
       createdAt: now,
@@ -79,7 +79,7 @@ export default function EmailComposer() {
         if (cancelled) return;
         const now = new Date();
         setFetchedTemplateDraft({
-          id: t.id,
+          id: "",
           subject: t.title,
           content: t.content ?? t.description ?? "",
           createdAt: now,
