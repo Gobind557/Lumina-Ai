@@ -341,6 +341,14 @@ This project demonstrates:
 - Production-style authentication (JWT + OAuth)
 - AI integration in real workflow paths (compose, rewrite, personalize, score)
 
+<img width="1919" height="967" alt="image" src="https://github.com/user-attachments/assets/e58a76f5-ae8b-4325-8e1d-865eda9721ac" />
+<img width="1910" height="882" alt="image" src="https://github.com/user-attachments/assets/020971f6-eb8f-4f47-9dd4-64bfbcb4fdaa" />
+<img width="1897" height="890" alt="image" src="https://github.com/user-attachments/assets/c5582da3-50fa-4246-98be-618cfd9d621d" />
+
+
+
+
+
 ## Documentation
 
 | Document | Description |
