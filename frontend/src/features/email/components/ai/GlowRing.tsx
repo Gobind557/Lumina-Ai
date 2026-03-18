@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 
-export type AIState = "idle" | "thinking" | "suggestion_ready";
+export type AIState = "idle" | "generating" | "suggested" | "applied";
 
 interface GlowRingProps {
   children: ReactNode;
@@ -17,9 +17,11 @@ export default function GlowRing({
     switch (aiState) {
       case "idle":
         return 0.4;
-      case "thinking":
+      case "generating":
         return 0.7;
-      case "suggestion_ready":
+      case "suggested":
+        return 1;
+      case "applied":
         return 1;
       default:
         return 0.4;
@@ -33,15 +35,21 @@ export default function GlowRing({
         return `0 0 20px rgba(59, 130, 246, ${
           opacity * 0.3
         }), 0 0 40px rgba(147, 51, 234, ${opacity * 0.2})`;
-      case "thinking":
+      case "generating":
         return `0 0 30px rgba(59, 130, 246, ${
           opacity * 0.5
         }), 0 0 60px rgba(147, 51, 234, ${opacity * 0.4})`;
-      case "suggestion_ready": {
+      case "suggested": {
         const conf = confidence ?? 0.5;
         return `0 0 40px rgba(59, 130, 246, ${
           0.5 + conf * 0.3
         }), 0 0 80px rgba(147, 51, 234, ${0.3 + conf * 0.2})`;
+      }
+      case "applied": {
+        const conf = confidence ?? 0.5;
+        return `0 0 30px rgba(16, 185, 129, ${
+          0.35 + conf * 0.25
+        }), 0 0 70px rgba(124, 58, 237, ${0.25 + conf * 0.15})`;
       }
       default:
         return "none";
@@ -51,9 +59,9 @@ export default function GlowRing({
   const opacity = getGlowOpacity();
   const boxShadow = getBoxShadow();
   const shouldAnimate =
-    aiState === "thinking" || aiState === "suggestion_ready";
+    aiState === "generating" || aiState === "suggested";
   const animationClass =
-    aiState === "suggestion_ready"
+    aiState === "suggested"
       ? "animate-pulse-glow-strong"
       : "animate-pulse-glow";
 
@@ -68,12 +76,12 @@ export default function GlowRing({
       }}
     >
       {/* Inner content wrapper */}
-      <div className="relative w-full h-full rounded-xl overflow-hidden">
+      <div className="relative w-full h-full rounded-xl overflow-y-auto overflow-x-hidden">
         {children}
       </div>
 
       {/* Confidence Badge (when suggestion ready) */}
-      {aiState === "suggestion_ready" && confidence !== undefined && (
+      {(aiState === "suggested" || aiState === "applied") && confidence !== undefined && (
         <div className="absolute -top-2 -right-2 z-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs font-semibold px-2 py-0.5 rounded-full shadow-lg animate-fade-in">
           {Math.round(confidence * 100)}%
         </div>

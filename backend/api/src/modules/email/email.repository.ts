@@ -27,6 +27,22 @@ export const emailRepository = {
       bodyHtml: payload.bodyHtml ?? null,
       bodyText: payload.bodyText ?? null,
     };
+
+    // Guard against stale/invalid prospect ids (foreign key constraint).
+    if (payload.prospectId) {
+      const prospect = await prisma.prospect.findUnique({
+        where: { id: payload.prospectId },
+        select: { id: true },
+      });
+      if (!prospect) {
+        throw new ApiError(
+          400,
+          "PROSPECT_NOT_FOUND",
+          "Selected prospect no longer exists. Please re-select the recipient."
+        );
+      }
+    }
+
     if (payload.id) {
       const existing = await prisma.emailDraft.findFirst({
         where: { id: payload.id, userId: payload.userId },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Bold,
@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   Clock3,
   Loader2,
+  Sparkles,
+  Undo2,
 } from "lucide-react";
 import {
   CopilotPanel,
@@ -103,6 +105,7 @@ export default function EmailComposer() {
     useEmailDraft(initialDraft);
   const [aiState, setAIState] = useState<AIState>("idle");
   const [aiConfidence, setAIConfidence] = useState<number>(0.87);
+  const [aiScore, setAiScore] = useState<number>(82);
   const [sendMode, setSendMode] = useState<SendMode>("send_at_best_time");
   const [tone, setTone] = useState<"formal" | "casual">("casual");
   const [recipientEmail, setRecipientEmail] = useState("");
@@ -124,16 +127,101 @@ export default function EmailComposer() {
   const [sentEmailId, setSentEmailId] = useState<string | null>(null);
   const [isNewRecipient, setIsNewRecipient] = useState(false);
 
-  // Mock AI suggestions for demo
-  const suggestions = [
-    {
-      id: "1",
-      start: 0,
-      end: 0,
-      text: "[insert personalized text here]",
-      confidence: 0.87,
-    },
-  ];
+  const calculateAIScore = (body: string, subj: string) => {
+    let score = 50;
+    const t = body.toLowerCase();
+    const s = subj.toLowerCase();
+    const normalizedRecipientName = recipientName.trim().toLowerCase();
+
+    // Basic structure heuristics
+    if (/\bhi\b|hello/i.test(body)) score += 12;
+    if (t.includes("james") || (normalizedRecipientName && t.includes(normalizedRecipientName)))
+      score += 15;
+    if (t.includes("thank you") || t.includes("thanks")) score += 8;
+    if (body.length > 120) score += 8;
+    if (body.length > 350) score -= 6;
+
+    // Personalization signals
+    if (t.includes("[insert personalized text here]")) score -= 10; // placeholder = weak
+    if (recipientCompany.trim() && t.includes(recipientCompany.toLowerCase()))
+      score += 18;
+
+    // Subject quality signals
+    if (s.length > 4 && s.length < 70) score += 6;
+    if (s.includes("?")) score += 5;
+
+    // Tone signals (light touch)
+    if (tone === "formal") {
+      score += (t.includes("regards") || t.includes("sincerely")) ? 4 : 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+  };
+
+  useEffect(() => {
+    setAiScore(calculateAIScore(draft.content, draft.subject));
+  }, [draft.content, draft.subject, recipientCompany, recipientName, tone]);
+
+  type AISuggestionKind =
+    | "personalize"
+    | "tone"
+    | "shorten"
+    | "improve"
+    | "subject"
+    | "company";
+
+  type WeakPhrase = { text: string; hint: string };
+
+  type PendingAISuggestion = {
+    kind: AISuggestionKind;
+    label: string;
+    beforeContent?: string;
+    afterContent?: string;
+    beforeSubject?: string;
+    afterSubject?: string;
+    confidence?: number;
+    weakPhrases?: WeakPhrase[];
+  };
+
+  const [pendingSuggestion, setPendingSuggestion] =
+    useState<PendingAISuggestion | null>(null);
+  const [appliedSuggestion, setAppliedSuggestion] =
+    useState<PendingAISuggestion | null>(null);
+  const [undoSnapshot, setUndoSnapshot] = useState<{
+    subject: string;
+    content: string;
+  } | null>(null);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const editorCardRef = useRef<HTMLDivElement | null>(null);
+
+  const computeWeakPhrases = (before: string): WeakPhrase[] => {
+    const phrases: WeakPhrase[] = [];
+    const lower = before.toLowerCase();
+
+    if (lower.includes("i noticed") && (lower.includes("linkedin") || lower.includes("recent"))) {
+      phrases.push({
+        text: "I noticed your recent LinkedIn post",
+        hint: "Too generic — personalize this line for better replies.",
+      });
+    }
+
+    if (recipientCompany.trim() && !lower.includes(recipientCompany.toLowerCase())) {
+      phrases.push({
+        text: "Mention company",
+        hint: "Add a company reference to increase relevance.",
+      });
+    }
+
+    if (!/\bhi\b|hello/i.test(before)) {
+      phrases.push({
+        text: "Greeting",
+        hint: "Add a short greeting to improve readability.",
+      });
+    }
+
+    return phrases.slice(0, 3);
+  };
 
   const ensureProspect = async () => {
     const email = recipientEmail.trim().toLowerCase();
@@ -305,8 +393,15 @@ export default function EmailComposer() {
 
   const handlePersonalize = async () => {
     try {
-      setAIState("thinking");
+      setAIState("generating");
+      setPendingSuggestion(null);
+      setAppliedSuggestion(null);
+      setUndoSnapshot(null);
       const draftId = await saveDraftNow();
+      if (!draftId) {
+        setAIState("idle");
+        return;
+      }
       const prospectId =
         draft.prospectId ||
         (typeof window !== "undefined"
@@ -325,13 +420,28 @@ export default function EmailComposer() {
         }),
       });
       if (response.suggestion?.subject) {
-        updateSubject(response.suggestion.subject);
+        // Subject applied only after user clicks "Apply"
       }
       if (response.suggestion?.body) {
-        updateContent(response.suggestion.body);
+        // Body applied only after user clicks "Apply"
       }
       setAIConfidence(response.confidence ?? 0.87);
-      setAIState("suggestion_ready");
+
+      const beforeContent = draft.content;
+      const beforeSubject = draft.subject;
+      setPendingSuggestion({
+        kind: "personalize",
+        label: "Personalize your email with AI",
+        beforeContent,
+        afterContent: response.suggestion?.body,
+        beforeSubject,
+        afterSubject: response.suggestion?.subject,
+        confidence: response.confidence ?? 0.87,
+        weakPhrases: computeWeakPhrases(draft.content),
+      });
+
+      setAIState("suggested");
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
     } catch {
       setAIState("idle");
     }
@@ -340,9 +450,15 @@ export default function EmailComposer() {
   const handleToneChange = async (newTone: "formal" | "casual") => {
     setTone(newTone);
     try {
-      setAIState("thinking");
+      setAIState("generating");
+      setPendingSuggestion(null);
+      setAppliedSuggestion(null);
+      setUndoSnapshot(null);
       const draftId = await saveDraftNow();
-      if (!draftId) return;
+      if (!draftId) {
+        setAIState("idle");
+        return;
+      }
       const response = await apiRequest<{
         suggestion: { subject?: string; body?: string };
         confidence: number;
@@ -354,13 +470,25 @@ export default function EmailComposer() {
         }),
       });
       if (response.suggestion?.subject) {
-        updateSubject(response.suggestion.subject);
+        // Apply only via preview
       }
       if (response.suggestion?.body) {
-        updateContent(response.suggestion.body);
+        // Apply only via preview
       }
       setAIConfidence(response.confidence ?? 0.87);
-      setAIState("suggestion_ready");
+
+      setPendingSuggestion({
+        kind: "tone",
+        label: `Rewrite in ${newTone} tone`,
+        beforeContent: draft.content,
+        afterContent: response.suggestion?.body,
+        beforeSubject: draft.subject,
+        afterSubject: response.suggestion?.subject,
+        confidence: response.confidence ?? 0.87,
+        weakPhrases: computeWeakPhrases(draft.content),
+      });
+      setAIState("suggested");
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
     } catch {
       setAIState("idle");
     }
@@ -368,9 +496,16 @@ export default function EmailComposer() {
 
   const handleShorten = async () => {
     try {
-      setAIState("thinking");
+      setAIState("generating");
+      setPendingSuggestion(null);
+      setAppliedSuggestion(null);
+      setUndoSnapshot(null);
       const draftId = await saveDraftNow();
       if (!draftId) return;
+      if (!draftId) {
+        setAIState("idle");
+        return;
+      }
       const response = await apiRequest<{
         suggestion: { body?: string };
         confidence: number;
@@ -382,10 +517,22 @@ export default function EmailComposer() {
         }),
       });
       if (response.suggestion?.body) {
-        updateContent(response.suggestion.body);
+        // Apply only via preview
       }
       setAIConfidence(response.confidence ?? 0.87);
-      setAIState("suggestion_ready");
+
+      setPendingSuggestion({
+        kind: "shorten",
+        label: "Shorten your message",
+        beforeContent: draft.content,
+        afterContent: response.suggestion?.body,
+        beforeSubject: draft.subject,
+        afterSubject: undefined,
+        confidence: response.confidence ?? 0.87,
+        weakPhrases: computeWeakPhrases(draft.content),
+      });
+      setAIState("suggested");
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
     } catch {
       setAIState("idle");
     }
@@ -393,9 +540,15 @@ export default function EmailComposer() {
 
   const handleImprove = async () => {
     try {
-      setAIState("thinking");
+      setAIState("generating");
+      setPendingSuggestion(null);
+      setAppliedSuggestion(null);
+      setUndoSnapshot(null);
       const draftId = await saveDraftNow();
-      if (!draftId) return;
+      if (!draftId) {
+        setAIState("idle");
+        return;
+      }
       const response = await apiRequest<{
         suggestion: { body?: string };
         confidence: number;
@@ -407,38 +560,141 @@ export default function EmailComposer() {
         }),
       });
       if (response.suggestion?.body) {
-        updateContent(response.suggestion.body);
+        // Apply only via preview
       }
       setAIConfidence(response.confidence ?? 0.87);
-      setAIState("suggestion_ready");
+
+      setPendingSuggestion({
+        kind: "improve",
+        label: "Improve clarity and readability",
+        beforeContent: draft.content,
+        afterContent: response.suggestion?.body,
+        beforeSubject: draft.subject,
+        afterSubject: undefined,
+        confidence: response.confidence ?? 0.87,
+        weakPhrases: computeWeakPhrases(draft.content),
+      });
+      setAIState("suggested");
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
     } catch {
       setAIState("idle");
     }
   };
 
-  const handleOptimizeReply = async () => {
+  const handleGenerateSubject = async () => {
     try {
-      setAIState("thinking");
+      setAIState("generating");
+      setPendingSuggestion(null);
+      setAppliedSuggestion(null);
+      setUndoSnapshot(null);
       const draftId = await saveDraftNow();
-      if (!draftId) return;
+      if (!draftId) {
+        setAIState("idle");
+        return;
+      }
       const response = await apiRequest<{
-        suggestion: { body?: string };
+        suggestion: { subject?: string };
         confidence: number;
       }>(API_ENDPOINTS.AI_REWRITE, {
         method: "POST",
         body: JSON.stringify({
           draft_id: draftId,
-          instruction: "Optimize for higher replies.",
+          instruction:
+            "Generate 3 subject line options, pick the strongest one, and return ONLY the final subject string.",
         }),
       });
-      if (response.suggestion?.body) {
-        updateContent(response.suggestion.body);
+
+      if (response.suggestion?.subject) {
+        // Apply only via preview
       }
       setAIConfidence(response.confidence ?? 0.87);
-      setAIState("suggestion_ready");
+
+      setPendingSuggestion({
+        kind: "subject",
+        label: "Generate subject with AI",
+        beforeSubject: draft.subject,
+        afterSubject: response.suggestion?.subject,
+        confidence: response.confidence ?? 0.87,
+      });
+      setAIState("suggested");
     } catch {
       setAIState("idle");
     }
+  };
+
+  const handleApplyAISuggestion = async (
+    suggestionId: "personalize" | "subject" | "company",
+  ) => {
+    if (suggestionId === "personalize") {
+      await handlePersonalize();
+      return;
+    }
+
+    if (suggestionId === "subject") {
+      await handleGenerateSubject();
+      return;
+    }
+
+    if (suggestionId === "company") {
+      const company = recipientCompany || prospect?.company || "";
+      if (!company) return;
+
+      const alreadyMentioned = draft.content
+        .toLowerCase()
+        .includes(company.toLowerCase());
+      if (alreadyMentioned) return;
+
+      const line = `\n\nP.S. I’d love to learn more about how ${company} approaches outreach and where you’re looking to improve reply rates.`;
+      const beforeContent = draft.content;
+      const afterContent = `${draft.content}${line}`;
+      setPendingSuggestion({
+        kind: "company",
+        label: "Mention company for personalization",
+        beforeContent,
+        afterContent,
+        confidence: 0.68,
+        weakPhrases: computeWeakPhrases(beforeContent),
+      });
+      setAIState("suggested");
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+    }
+  };
+
+  const applyPendingSuggestion = () => {
+    if (!pendingSuggestion) return;
+    setUndoSnapshot({ subject: draft.subject, content: draft.content });
+
+    if (pendingSuggestion.afterSubject != null) {
+      updateSubject(pendingSuggestion.afterSubject);
+    }
+    if (pendingSuggestion.afterContent != null) {
+      updateContent(pendingSuggestion.afterContent);
+    }
+
+    setAppliedSuggestion(pendingSuggestion);
+    setPendingSuggestion(null);
+    setAIState("applied");
+    setToastMessage("Suggestion applied");
+    window.setTimeout(() => {
+      setAIState("idle");
+      setToastMessage(null);
+    }, 1600);
+  };
+
+  const rejectPendingSuggestion = () => {
+    setPendingSuggestion(null);
+    setAIState("idle");
+  };
+
+  const undoAppliedSuggestion = () => {
+    if (!undoSnapshot) return;
+    updateSubject(undoSnapshot.subject);
+    updateContent(undoSnapshot.content);
+    setUndoSnapshot(null);
+    setAppliedSuggestion(null);
+    setAIState("idle");
+    setToastMessage("Undid AI suggestion");
+    window.setTimeout(() => setToastMessage(null), 1400);
   };
 
   // const handleSuggestionAccept = (_suggestionId: string) => {
@@ -462,9 +718,14 @@ export default function EmailComposer() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full overflow-hidden relative">
       {/* Main Composer Area */}
       <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
+        {toastMessage ? (
+          <div className="absolute left-1/2 top-4 -translate-x-1/2 z-[60] rounded-xl border border-purple-200/70 bg-white/90 backdrop-blur-xl px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg">
+            {toastMessage}
+          </div>
+        ) : null}
         <div className="rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
@@ -521,19 +782,33 @@ export default function EmailComposer() {
 
         {/* Card Container with Glow Ring */}
         <GlowRing aiState={aiState} confidence={aiConfidence}>
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden glass-card border border-slate-200/70 shadow-[0_20px_60px_rgba(99,102,241,0.12)]">
+            <div
+              ref={editorCardRef}
+              className="flex-1 flex flex-col min-h-0 overflow-y-auto glass-card border border-slate-200/70 shadow-[0_20px_60px_rgba(99,102,241,0.12)]"
+            >
             {/* Subject Line */}
             <div className="flex-shrink-0 p-3 border-b border-slate-200/70">
               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                 Subject
               </label>
-              <input
-                type="text"
-                value={draft.subject}
-                onChange={(e) => updateSubject(e.target.value)}
-                placeholder="What's this email about?"
-                className="w-full px-3 py-2.5 bg-white/80 border border-slate-200/70 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all text-sm"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={draft.subject}
+                  onChange={(e) => updateSubject(e.target.value)}
+                  placeholder="What's this email about?"
+                  className="w-full px-3 py-2.5 pr-36 bg-white/80 border border-slate-200/70 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-400/20 focus:border-purple-400/40 transition-all text-sm shadow-sm"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateSubject}
+                  disabled={aiState === "generating"}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md text-xs font-semibold border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
+                  aria-label="Generate subject with AI"
+                >
+                  ✨ Generate Subject
+                </button>
+              </div>
             </div>
 
             {/* Email Body */}
@@ -547,7 +822,30 @@ export default function EmailComposer() {
                 <RichTextEditor
                   value={draft.content}
                   onChange={updateContent}
-                  suggestions={suggestions}
+                  aiScore={aiScore}
+                  aiSuggestion={
+                    pendingSuggestion?.afterContent != null
+                      ? {
+                          label: pendingSuggestion.label,
+                          before: pendingSuggestion.beforeContent ?? "",
+                          after: pendingSuggestion.afterContent ?? "",
+                          confidence: pendingSuggestion.confidence,
+                          weakPhrases: pendingSuggestion.weakPhrases,
+                        }
+                      : appliedSuggestion?.afterContent != null
+                        ? {
+                            label: appliedSuggestion.label,
+                            before: appliedSuggestion.beforeContent ?? "",
+                            after: appliedSuggestion.afterContent ?? "",
+                            confidence: appliedSuggestion.confidence,
+                            weakPhrases: appliedSuggestion.weakPhrases,
+                          }
+                        : null
+                  }
+                  onApplySuggestion={applyPendingSuggestion}
+                  onRejectSuggestion={rejectPendingSuggestion}
+                  onUndoSuggestion={undoAppliedSuggestion}
+                  canUndo={!!undoSnapshot && appliedSuggestion?.afterContent != null}
                 />
 
                 {/* AI Action Bar */}
@@ -557,8 +855,8 @@ export default function EmailComposer() {
                     onToneChange={handleToneChange}
                     onShorten={handleShorten}
                     onImprove={handleImprove}
-                    onOptimizeReply={handleOptimizeReply}
                     currentTone={tone}
+                    isGenerating={aiState === "generating"}
                   />
                 </div>
 
@@ -623,6 +921,81 @@ export default function EmailComposer() {
                     <ListOrdered className="w-4 h-4 text-slate-600" />
                   </button>
                 </div>
+
+              {/* Subject suggestion preview (before -> after) */}
+              {pendingSuggestion?.kind === "subject" && pendingSuggestion.afterSubject ? (
+                <div className="mt-3 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">💡 AI Suggestion</div>
+                      <div className="text-xs text-slate-600">Generate subject with AI</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Confidence:{" "}
+                      <span className="font-semibold text-purple-700">
+                        {Math.round((pendingSuggestion.confidence ?? 0.87) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="rounded-md border border-purple-100 bg-white/70 p-2">
+                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
+                        Before
+                      </div>
+                      <div className="text-[12px] text-slate-700 whitespace-pre-wrap break-words max-h-24 overflow-auto">
+                        {pendingSuggestion.beforeSubject || "—"}
+                      </div>
+                    </div>
+                    <div className="rounded-md border border-purple-100 bg-purple-50/70 p-2">
+                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
+                        After
+                      </div>
+                      <div className="text-[12px] text-slate-900 whitespace-pre-wrap break-words max-h-24 overflow-auto">
+                        {pendingSuggestion.afterSubject || "—"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={rejectPendingSuggestion}
+                      className="inline-flex items-center rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors shadow-sm"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyPendingSuggestion}
+                      className="inline-flex items-center gap-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-2 transition-colors shadow-sm hover:shadow-md"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {/* Undo for applied subject suggestion */}
+              {appliedSuggestion?.kind === "subject" && undoSnapshot ? (
+                <div className="mt-3 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">✅ Applied</div>
+                      <div className="text-xs text-slate-600">You can undo this change.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={undoAppliedSuggestion}
+                      className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors shadow-sm"
+                    >
+                      <Undo2 className="w-4 h-4" />
+                      Undo
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               </div>
             </div>
 
@@ -687,8 +1060,10 @@ export default function EmailComposer() {
         isNewRecipient={isNewRecipient}
         tone={tone}
         sendMode={sendMode}
+        aiState={aiState}
         onToneChange={handleToneChange}
         onSendModeChange={handleSendModeChange}
+        onApplyAISuggestion={handleApplyAISuggestion}
       />
     </div>
   );

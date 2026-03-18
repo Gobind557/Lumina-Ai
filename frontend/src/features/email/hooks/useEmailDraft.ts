@@ -43,19 +43,34 @@ export function useEmailDraft(initialDraft?: EmailDraft) {
         return ''
       }
 
-      const response = await apiRequest<{ id: string; updated_at: string }>(
-        API_ENDPOINTS.DRAFTS,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            id: draftToSave.id || undefined,
-            prospect_id: prospectId,
-            subject: draftToSave.subject,
-            body_text: draftToSave.content,
-            body_html: draftToSave.content,
-          }),
+      let response: { id: string; updated_at: string }
+      try {
+        response = await apiRequest<{ id: string; updated_at: string }>(
+          API_ENDPOINTS.DRAFTS,
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              id: draftToSave.id || undefined,
+              prospect_id: prospectId,
+              subject: draftToSave.subject,
+              body_text: draftToSave.content,
+              body_html: draftToSave.content,
+            }),
+          }
+        )
+      } catch (e) {
+        const message = e instanceof Error ? e.message : ''
+        // If the locally stored prospect id went stale, clear it so the user can re-select.
+        if (
+          message.toLowerCase().includes('prospect') &&
+          (message.toLowerCase().includes('no longer') ||
+            message.toLowerCase().includes('not found'))
+        ) {
+          localStorage.removeItem(DEFAULT_PROSPECT_STORAGE_KEY)
+          return ''
         }
-      )
+        throw e
+      }
 
       setDraft((prev) => ({
         ...prev,
