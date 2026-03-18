@@ -10,13 +10,20 @@ import {
   ChevronsRight,
   MoreHorizontal,
   X,
+  Users,
+  Activity,
+  Clock,
+  Reply,
 } from 'lucide-react'
 import type { ProspectApi } from '../api/prospects.api'
 import { useProspects } from '../hooks/useProspects'
 import { useCreateProspect } from '../hooks/useCreateProspect'
 import { useUpdateProspect } from '../hooks/useUpdateProspect'
+import { StatCard } from '../components/StatCard'
+import { StatusBadge, type ProspectStatus } from '../components/StatusBadge'
+import { TagChip } from '../components/TagChip'
+import { Button, Panel, Surface, TextInput, cx, uiTokens } from '../components/ui'
 
-const PER_PAGE_OPTIONS = [8, 16, 24, 48]
 const STATUS_OPTIONS = ['Active', 'Pending', 'Replied'] as const
 const TAGS = [
   { id: 'hot', label: 'Hot Leads', count: 32, variant: 'red' as const },
@@ -60,14 +67,15 @@ const SEARCH_DEBOUNCE_MS = 300
 export default function Prospects() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const addNameRef = useRef<HTMLInputElement>(null)
   const [searchInput, setSearchInput] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [filterOpen, setFilterOpen] = useState(false)
-  const [actionsOpen, setActionsOpen] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [rowMenuOpenId, setRowMenuOpenId] = useState<string | null>(null)
   const [detailsProspect, setDetailsProspect] = useState<ProspectApi | null>(null)
   const [editProspect, setEditProspect] = useState<ProspectApi | null>(null)
+  const [activeTag, setActiveTag] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     fullName: '',
     workEmail: '',
@@ -143,13 +151,37 @@ export default function Prospects() {
   const start = total === 0 ? 0 : page * pageSize + 1
   const end = Math.min((page + 1) * pageSize, total)
 
+  const prospectsWithStatus = prospects.map((p, i) => ({
+    prospect: p,
+    status: getDisplayStatus(i) as ProspectStatus,
+  }))
+
+  const visibleProspects = prospectsWithStatus.filter(({ prospect, status }) => {
+    if (!activeTag) return true
+    if (activeTag === 'hot') return status === 'Active'
+    if (activeTag === 'ent') return (prospect.company ?? '').length >= 12
+    if (activeTag === 'startup') return (prospect.company ?? '').length > 0 && (prospect.company ?? '').length < 12
+    return true
+  })
+
+  const counts = visibleProspects.reduce(
+    (acc, p) => {
+      acc.total += 1
+      if (p.status === 'Active') acc.active += 1
+      if (p.status === 'Pending') acc.pending += 1
+      if (p.status === 'Replied') acc.replied += 1
+      return acc
+    },
+    { total: 0, active: 0, pending: 0, replied: 0 },
+  )
+
   const toggleSelectAll = useCallback(() => {
-    if (selectedIds.size === prospects.length) {
+    if (selectedIds.size === visibleProspects.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(prospects.map((p) => p.id)))
+      setSelectedIds(new Set(visibleProspects.map((p) => p.prospect.id)))
     }
-  }, [prospects, selectedIds.size])
+  }, [visibleProspects, selectedIds.size])
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -174,249 +206,213 @@ export default function Prospects() {
   }, [addForm, create])
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-[#f8f9fc]">
+    <div className="flex h-full min-h-0 bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100">
       <div className="flex flex-1 min-h-0 min-w-0">
-        {/* Main content */}
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          {/* Top action bar */}
-          <div className="shrink-0 flex items-center gap-3 p-4 bg-white border-b border-slate-200/80">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                ref={searchInputRef}
-                type="search"
-                autoComplete="off"
-                placeholder="Search prospects..."
-                value={searchInput}
-                onChange={(e) => {
-                  if (document.activeElement !== searchInputRef.current) return
-                  handleSearchChange(e.target.value)
-                }}
-                className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterOpen((o) => !o)
-                    setActionsOpen(false)
+          {/* Top control bar */}
+          <div className="shrink-0 px-6 pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                <TextInput
+                  inputRef={searchInputRef}
+                  type="search"
+                  placeholder="Search prospects…"
+                  value={searchInput}
+                  onChange={(v) => {
+                    if (document.activeElement !== searchInputRef.current) return
+                    handleSearchChange(v)
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium shadow-sm hover:bg-slate-50"
-                >
-                  Filter <ChevronDown className="w-4 h-4" />
-                </button>
-                {filterOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 z-20 text-xs">
-                    <div className="px-3 py-2 border-b border-slate-100 font-semibold text-slate-900">
-                      Quick filters
-                    </div>
-                    <div className="px-3 py-2 space-y-2 text-slate-700">
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
-                        Hot leads only
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" className="rounded border-slate-300 text-indigo-600" />
-                        Has an active sequence
-                      </label>
-                      <p className="text-[11px] text-slate-500">
-                        This panel is UI-only for now — plug in real filters when your API supports them.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  leftIcon={<Search className="h-4 w-4" />}
+                />
               </div>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium shadow-sm hover:bg-slate-50"
-              >
-                <Download className="w-4 h-4" />
-                Import CSV
-              </button>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActionsOpen((o) => !o)
-                    setFilterOpen(false)
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium shadow-sm hover:bg-slate-50"
-                >
-                  Actions <ChevronDown className="w-4 h-4" />
-                </button>
-                {actionsOpen && (
-                  <div className="absolute right-0 mt-2 w-60 rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 z-20 text-xs">
-                    <button
-                      type="button"
-                      className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Button
+                    onClick={() => setFilterOpen((o) => !o)}
+                    variant="secondary"
+                    className="rounded-xl"
+                  >
+                    Filter <ChevronDown className="h-4 w-4 text-slate-500" />
+                  </Button>
+                  {filterOpen ? (
+                    <div
+                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border shadow-lg z-20"
+                      style={{ background: uiTokens.panel, borderColor: uiTokens.border }}
                     >
-                      Export selected (coming soon)
-                    </button>
-                    <div className="px-3 py-2 border-t border-slate-100 text-[11px] text-slate-500">
-                      These bulk actions are placeholders so the menu feels
-                      responsive. Hook them up to real mutations when ready.
+                      <div
+                        className="px-4 py-3 border-b text-sm font-semibold text-slate-900"
+                        style={{ borderColor: uiTokens.border }}
+                      >
+                        Quick filters
+                      </div>
+                      <div className="p-4 space-y-2 text-sm text-slate-700">
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" className="rounded border-slate-300 text-violet-600" />
+                          Hot leads only
+                        </label>
+                        <label className="flex items-center gap-2">
+                          <input type="checkbox" className="rounded border-slate-300 text-violet-600" />
+                          Has an active sequence
+                        </label>
+                        <p className="pt-1 text-xs text-slate-500">
+                          UI-only for now — wire these to the API when available.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  ) : null}
+                </div>
+
+                <Button variant="secondary" onClick={() => {}} className="rounded-xl">
+                  <Download className="h-4 w-4 text-slate-500" />
+                  Import CSV
+                </Button>
+
+                {!sidebarOpen ? (
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setSidebarOpen(true)
+                      setTimeout(() => addNameRef.current?.focus(), 0)
+                    }}
+                    className="px-4"
+                  >
+                    <Plus className="h-4 w-4" />
+                    + Add Prospect
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
 
-          {/* Table */}
-          <div className="flex-1 overflow-auto bg-white border-b border-slate-200/80">
-            {error && (
-              <div className="p-4 text-amber-700 bg-amber-50 border-b border-amber-200 text-sm">
-                {error.message}
-                <button type="button" onClick={() => refetch()} className="ml-2 underline">
-                  Retry
+          {/* Metrics row */}
+          <div className="shrink-0 px-6 pt-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total Prospects" value={total} icon={<Users className="h-4 w-4" />} />
+              <StatCard label="Active" value={counts.active} icon={<Activity className="h-4 w-4" />} />
+              <StatCard label="Pending" value={counts.pending} icon={<Clock className="h-4 w-4" />} />
+              <StatCard label="Replied" value={counts.replied} icon={<Reply className="h-4 w-4" />} />
+            </div>
+          </div>
+
+          {/* Table (card rows) */}
+          <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
+            {error ? (
+              <Panel className="p-4 text-sm text-amber-700">
+                <div className="flex items-center justify-between gap-3">
+                  <span>{error.message}</span>
+                  <Button variant="secondary" onClick={() => refetch()}>
+                    Retry
+                  </Button>
+                </div>
+              </Panel>
+            ) : null}
+
+            <Surface className="mt-3 overflow-visible">
+              <div
+                className="grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 px-4 py-3 text-xs font-semibold text-slate-600"
+                style={{ borderBottom: `1px solid ${uiTokens.border}` }}
+              >
+                <label className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={visibleProspects.length > 0 && selectedIds.size === visibleProspects.length}
+                    onChange={toggleSelectAll}
+                    className="rounded border-slate-300 text-violet-600 focus:ring-violet-500/30"
+                  />
+                </label>
+                <button type="button" className="flex items-center gap-1 text-left">
+                  Prospect <ChevronDown className="h-4 w-4 text-slate-400" />
                 </button>
+                <button type="button" className="flex items-center gap-1 text-left">
+                  Company <ChevronDown className="h-4 w-4 text-slate-400" />
+                </button>
+                <button type="button" className="flex items-center gap-1 text-left">
+                  Status <ChevronDown className="h-4 w-4 text-slate-400" />
+                </button>
+                <button type="button" className="flex items-center gap-1 text-left">
+                  Last action <ChevronDown className="h-4 w-4 text-slate-400" />
+                </button>
+                <span />
               </div>
-            )}
-            <table className="w-full border-collapse">
-              <thead className="sticky top-0 bg-slate-50/95 border-b border-slate-200 z-10">
-                <tr>
-                  <th className="text-left py-3 pl-4 w-10">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={prospects.length > 0 && selectedIds.size === prospects.length}
-                        onChange={toggleSelectAll}
-                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="text-xs font-medium text-slate-500">Select all</span>
-                    </label>
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    <button type="button" className="flex items-center gap-1">
-                      Name <ChevronDown className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    <button type="button" className="flex items-center gap-1">
-                      Company <ChevronDown className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    <button type="button" className="flex items-center gap-1">
-                      Status <ChevronDown className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    Sequence
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    Step
-                  </th>
-                  <th className="text-left py-3 px-2 text-xs font-semibold text-slate-600">
-                    <button type="button" className="flex items-center gap-1">
-                      Last Action <ChevronDown className="w-4 h-4 text-slate-400" />
-                    </button>
-                  </th>
-                  <th className="w-10 py-3 pr-4" />
-                </tr>
-              </thead>
-              <tbody>
+
+              <div className="p-2">
                 {loading ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-sm text-slate-500">
-                      Loading…
-                    </td>
-                  </tr>
-                ) : prospects.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-sm text-slate-500">
-                      No prospects found. Add one using the form on the right.
-                    </td>
-                  </tr>
+                  <div className="py-16 text-center text-sm text-slate-600">Loading…</div>
+                ) : visibleProspects.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <p className="text-sm font-medium text-slate-900">
+                      No prospects yet. Add or import to get started.
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Create your first prospect from the panel on the right.
+                    </p>
+                  </div>
                 ) : (
-                  prospects.map((p, i) => {
-                    const status = getDisplayStatus(i)
-                    const statusDot =
-                      status === 'Active'
-                        ? 'bg-emerald-500'
-                        : status === 'Replied'
-                          ? 'bg-violet-500'
-                          : 'bg-amber-500'
-                    return (
-                      <tr
-                        key={p.id}
-                        className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
-                      >
-                        <td className="py-3 pl-4">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(p.id)}
-                            onChange={() => toggleSelect(p.id)}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                        </td>
-                        <td className="py-3 px-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-medium text-slate-600 shrink-0">
+                  <div className="space-y-2">
+                    {visibleProspects.map(({ prospect: p, status }) => {
+                      const name = getFullName(p)
+                      return (
+                        <div
+                          key={p.id}
+                          className={cx(
+                            'grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 rounded-2xl border px-4 py-4',
+                            'transition-colors',
+                            'bg-white/70 hover:bg-white',
+                          )}
+                          style={{ borderColor: uiTokens.border }}
+                        >
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(p.id)}
+                              onChange={() => toggleSelect(p.id)}
+                              className="rounded border-slate-300 text-violet-600 focus:ring-violet-500/30"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-10 w-10 shrink-0 rounded-full border border-slate-200/70 bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow-md shadow-indigo-500/20">
                               {getInitials(p)}
                             </div>
-                            <div>
-                              <div className="text-sm font-medium text-slate-900">
-                                {getFullName(p)}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                {p.job_title || '—'}
-                              </div>
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-semibold text-slate-900">{name}</div>
+                              <div className="truncate text-xs text-slate-500">{p.email}</div>
                             </div>
                           </div>
-                        </td>
-                        <td className="py-3 px-2">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-                            <div>
-                              <div className="text-sm text-slate-800">
-                                {p.company || '—'}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                {p.company ? 'Bengaluru' : '—'}
-                              </div>
+
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
+                            <div className="min-w-0">
+                              <div className="truncate text-sm text-slate-800">{p.company || '—'}</div>
+                              <div className="truncate text-xs text-slate-500">{p.job_title || '—'}</div>
                             </div>
                           </div>
-                        </td>
-                        <td className="py-3 px-2">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${statusDot}`}
-                            />
-                            <span className="text-sm text-slate-700">{status}</span>
+
+                          <div>
+                            <StatusBadge status={status} />
                           </div>
-                        </td>
-                        <td className="py-3 px-2 text-sm text-slate-500">
-                          —
-                        </td>
-                        <td className="py-3 px-2 text-sm text-slate-500">
-                          —
-                        </td>
-                        <td className="py-3 px-2 text-sm text-slate-600">
-                          {formatLastAction(p.updated_at)}
-                        </td>
-                        <td className="py-3 pr-4">
-                          <div className="relative">
-                            <button
-                              type="button"
-                              className="p-1 rounded hover:bg-slate-200 text-slate-500"
+
+                          <div className="text-sm text-slate-600">{formatLastAction(p.updated_at)}</div>
+
+                          <div className="relative flex justify-end">
+                            <Button
+                              variant="ghost"
+                              className="h-9 w-9 px-0"
                               onClick={() =>
-                                setRowMenuOpenId((current) =>
-                                  current === p.id ? null : p.id,
-                                )
+                                setRowMenuOpenId((current) => (current === p.id ? null : p.id))
                               }
-                              aria-haspopup="true"
-                              aria-expanded={rowMenuOpenId === p.id}
                             >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                            {rowMenuOpenId === p.id && (
-                              <div className="absolute right-0 mt-1 w-40 rounded-xl border border-slate-200 bg-white shadow-lg shadow-slate-900/10 text-xs z-20">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            {rowMenuOpenId === p.id ? (
+                              <div
+                                className="absolute right-0 top-full mt-1 w-44 overflow-hidden rounded-2xl border shadow-lg z-50"
+                                style={{ background: uiTokens.panel, borderColor: uiTokens.border }}
+                              >
                                 <button
                                   type="button"
-                                  className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                                  className="w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-white"
                                   onClick={() => {
                                     setEditProspect(p)
                                     setRowMenuOpenId(null)
@@ -426,7 +422,7 @@ export default function Prospects() {
                                 </button>
                                 <button
                                   type="button"
-                                  className="w-full px-3 py-2 text-left hover:bg-slate-50 text-slate-700"
+                                  className="w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-white"
                                   onClick={() => {
                                     setDetailsProspect(p)
                                     setRowMenuOpenId(null)
@@ -435,249 +431,220 @@ export default function Prospects() {
                                   View details
                                 </button>
                               </div>
-                            )}
+                            ) : null}
                           </div>
-                        </td>
-                      </tr>
-                    )
-                  })
+                        </div>
+                      )
+                    })}
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </Surface>
 
-          {/* Pagination */}
-          <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200/80">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-500">Rows per page</span>
-              <select
-                value={pageSize}
-                onChange={() => {}}
-                className="text-sm border border-slate-200 rounded-lg px-2 py-1 bg-white text-slate-700"
-              >
-                {PER_PAGE_OPTIONS.map((n) => (
-                  <option key={n} value={n}>
-                    {n} per page
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="text-sm text-slate-600">
-              {start}-{end} of {total}
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => setPage(page - 1)}
-                disabled={page === 0}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 hover:bg-slate-50"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              {Array.from({ length: Math.min(6, totalPages) }, (_, i) => {
-                const p = page < 3 ? i : page - 2 + i
-                if (p >= totalPages) return null
-                return (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPage(p)}
-                    className={`min-w-[2rem] py-1.5 rounded-lg text-sm font-medium ${
-                      p === page
-                        ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    {p + 1}
-                  </button>
-                )
-              })}
-              <button
-                type="button"
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages - 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 hover:bg-slate-50"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage(totalPages - 1)}
-                disabled={page >= totalPages - 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-600 disabled:opacity-50 hover:bg-slate-50"
-              >
-                <ChevronsRight className="w-4 h-4" />
-              </button>
+            {/* Pagination */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                {start}-{end} of {total}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="secondary"
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 0}
+                  className="h-9 w-9 px-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(6, totalPages) }, (_, i) => {
+                  const p = page < 3 ? i : page - 2 + i
+                  if (p >= totalPages) return null
+                  const active = p === page
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setPage(p)}
+                      className={cx(
+                        'min-w-[2.25rem] h-9 rounded-xl text-sm font-medium transition-colors border',
+                        active
+                          ? 'bg-[#7c3aed]/10 text-[#6d28d9] border-[#7c3aed]/25'
+                          : 'bg-white/70 text-slate-700 border-slate-200/70 hover:bg-white',
+                      )}
+                    >
+                      {p + 1}
+                    </button>
+                  )
+                })}
+                <Button
+                  variant="secondary"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="h-9 w-9 px-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setPage(totalPages - 1)}
+                  disabled={page >= totalPages - 1}
+                  className="h-9 w-9 px-0"
+                >
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right sidebar */}
-        {sidebarOpen && (
-          <aside className="w-80 shrink-0 flex flex-col bg-slate-100/90 border-l border-slate-200 overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-              {/* Add Prospect — autocomplete off so typing here never affects the table search */}
-              <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <h3 className="text-sm font-semibold text-slate-900">Add Prospect</h3>
-                  <button
-                    type="button"
-                    onClick={() => setSidebarOpen(false)}
-                    className="p-1 rounded text-slate-400 hover:text-slate-600"
+        {/* Right panel */}
+        {sidebarOpen ? (
+          <aside className="w-[360px] shrink-0 border-l" style={{ borderColor: uiTokens.border }}>
+            <div className="h-full overflow-y-auto p-6 space-y-5">
+              <Panel className="overflow-hidden">
+                <div className="flex items-start justify-between gap-3 px-4 py-4">
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-slate-900">Add Prospect</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Create a prospect to start sequences, track replies, and keep your pipeline tidy.
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="h-9 w-9 px-0"
+                    onClick={() => {
+                      setSidebarOpen(false)
+                    }}
                   >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div className="p-4 space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Full Name"
-                    autoComplete="off"
+                <div className="px-4 pb-4 space-y-3">
+                  <TextInput
+                    inputRef={addNameRef}
+                    placeholder="Full name"
                     value={addForm.fullName}
-                    onChange={(e) =>
-                      setAddForm((f) => ({ ...f, fullName: e.target.value }))
-                    }
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                    onChange={(v) => setAddForm((f) => ({ ...f, fullName: v }))}
                   />
-                  <input
+                  <TextInput
                     type="email"
-                    placeholder="Work Email"
+                    placeholder="Work email"
                     value={addForm.workEmail}
-                    onChange={(e) =>
-                      setAddForm((f) => ({ ...f, workEmail: e.target.value }))
-                    }
-                    autoComplete="off"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                    onChange={(v) => setAddForm((f) => ({ ...f, workEmail: v }))}
                   />
-                  <input
-                    type="text"
+                  <TextInput
                     placeholder="Company"
                     value={addForm.company}
-                    onChange={(e) =>
-                      setAddForm((f) => ({ ...f, company: e.target.value }))
-                    }
-                    autoComplete="off"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                    onChange={(v) => setAddForm((f) => ({ ...f, company: v }))}
                   />
-                  <input
-                    type="text"
-                    placeholder="Job Title"
+                  <TextInput
+                    placeholder="Job title"
                     value={addForm.jobTitle}
-                    onChange={(e) =>
-                      setAddForm((f) => ({ ...f, jobTitle: e.target.value }))
-                    }
-                    autoComplete="off"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
+                    onChange={(v) => setAddForm((f) => ({ ...f, jobTitle: v }))}
                   />
-                  {createError && (
-                    <p className="text-xs text-red-600">{createError.message}</p>
-                  )}
-                  <button
-                    type="button"
+
+                  {createError ? <p className="text-xs text-red-600">{createError.message}</p> : null}
+
+                  <Button
+                    variant="primary"
                     onClick={handleSaveProspect}
                     disabled={creating || !addForm.workEmail.trim()}
-                    className="w-full py-2.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-sm font-medium shadow-sm"
+                    className="w-full py-2.5"
                   >
-                    {creating ? 'Saving…' : 'Save'}
-                  </button>
+                    {creating ? 'Saving…' : 'Save prospect'}
+                  </Button>
                 </div>
-              </section>
+              </Panel>
 
-              {/* Tags */}
-              <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <h3 className="text-sm font-semibold text-slate-900">Tags</h3>
-                  <button
-                    type="button"
-                    className="p-1 rounded text-slate-400 hover:text-slate-600"
-                  >
-                    <MoreHorizontal className="w-4 h-4" />
-                  </button>
+              <Panel className="overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">Tags</h3>
+                    <p className="mt-1 text-xs text-slate-500">Click a tag to filter the list.</p>
+                  </div>
+                  {activeTag ? (
+                    <Button variant="ghost" onClick={() => setActiveTag(null)} className="text-xs">
+                      Clear
+                    </Button>
+                  ) : null}
                 </div>
-                <div className="p-4 space-y-2">
+                <div className="px-4 pb-4 flex flex-wrap gap-2">
                   {TAGS.map((tag) => (
-                    <div
+                    <TagChip
                       key={tag.id}
-                      className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium mr-2 ${
-                        tag.variant === 'red'
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-violet-100 text-violet-700'
-                      }`}
-                    >
-                      <span>{tag.label}</span>
-                      <span className="text-xs opacity-80">{tag.count}</span>
-                    </div>
+                      label={tag.label}
+                      count={tag.count}
+                      tone={tag.variant === 'red' ? 'red' : 'purple'}
+                      active={activeTag === tag.id}
+                      onClick={() => setActiveTag((current) => (current === tag.id ? null : tag.id))}
+                    />
                   ))}
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Startup
-                  </button>
+                  <TagChip label="Add tag" tone="neutral" onClick={() => {}} />
                 </div>
-              </section>
+              </Panel>
             </div>
           </aside>
-        )}
+        ) : null}
 
         {/* View details modal */}
         {detailsProspect && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+            className="fixed inset-0 z-50 overflow-y-auto"
+            style={{ background: 'rgba(15, 23, 42, 0.35)' }}
             onClick={() => setDetailsProspect(null)}
           >
-            <div
-              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-900">Prospect details</h3>
-                <button
-                  type="button"
-                  onClick={() => setDetailsProspect(null)}
-                  className="p-1 rounded text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 space-y-3 text-sm">
-                <div>
-                  <span className="text-slate-500">Name</span>
-                  <p className="font-medium text-slate-900">
-                    {getFullName(detailsProspect) || '—'}
-                  </p>
+            <div className="min-h-full w-full px-4 py-10 flex items-center justify-center">
+              <div
+                className="w-full max-w-md rounded-2xl border border-slate-200/70 bg-white shadow-xl shadow-slate-900/20 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Prospect details</h3>
+                  <button
+                    type="button"
+                    onClick={() => setDetailsProspect(null)}
+                    className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <div>
-                  <span className="text-slate-500">Email</span>
-                  <p className="font-medium text-slate-900">{detailsProspect.email}</p>
+                <div className="p-4 space-y-3 text-sm">
+                  <div>
+                    <span className="text-slate-500">Name</span>
+                    <p className="font-medium text-slate-900">
+                      {getFullName(detailsProspect) || '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Email</span>
+                    <p className="font-medium text-slate-900">{detailsProspect.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Company</span>
+                    <p className="font-medium text-slate-900">{detailsProspect.company || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Job title</span>
+                    <p className="font-medium text-slate-900">{detailsProspect.job_title || '—'}</p>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Last updated</span>
+                    <p className="font-medium text-slate-900">
+                      {formatLastAction(detailsProspect.updated_at)}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-slate-500">Company</span>
-                  <p className="font-medium text-slate-900">{detailsProspect.company || '—'}</p>
+                <div className="border-t border-slate-200/70 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditProspect(detailsProspect)
+                      setDetailsProspect(null)
+                    }}
+                    className="w-full py-2 rounded-xl border border-slate-200/70 text-slate-800 text-sm font-medium hover:bg-slate-50 transition-colors"
+                  >
+                    Edit prospect
+                  </button>
                 </div>
-                <div>
-                  <span className="text-slate-500">Job title</span>
-                  <p className="font-medium text-slate-900">{detailsProspect.job_title || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-slate-500">Last updated</span>
-                  <p className="font-medium text-slate-900">
-                    {formatLastAction(detailsProspect.updated_at)}
-                  </p>
-                </div>
-              </div>
-              <div className="border-t border-slate-100 px-4 py-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditProspect(detailsProspect)
-                    setDetailsProspect(null)
-                  }}
-                  className="w-full py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
-                >
-                  Edit prospect
-                </button>
               </div>
             </div>
           </div>
@@ -686,83 +653,65 @@ export default function Prospects() {
         {/* Edit prospect modal */}
         {editProspect && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
+            className="fixed inset-0 z-50 overflow-y-auto"
+            style={{ background: 'rgba(15, 23, 42, 0.35)' }}
             onClick={() => setEditProspect(null)}
           >
-            <div
-              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                <h3 className="text-sm font-semibold text-slate-900">Edit prospect</h3>
-                <button
-                  type="button"
-                  onClick={() => setEditProspect(null)}
-                  className="p-1 rounded text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <div className="p-4 space-y-3">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  autoComplete="off"
-                  value={editForm.fullName}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, fullName: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-                />
-                <input
-                  type="email"
-                  placeholder="Work Email"
-                  autoComplete="off"
-                  value={editForm.workEmail}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, workEmail: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Company"
-                  autoComplete="off"
-                  value={editForm.company}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, company: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-                />
-                <input
-                  type="text"
-                  placeholder="Job Title"
-                  autoComplete="off"
-                  value={editForm.jobTitle}
-                  onChange={(e) =>
-                    setEditForm((f) => ({ ...f, jobTitle: e.target.value }))
-                  }
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50/80 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400"
-                />
-                {updateError && (
-                  <p className="text-xs text-red-600">{updateError.message}</p>
-                )}
-                <div className="flex gap-2">
+            <div className="min-h-full w-full px-4 py-10 flex items-center justify-center">
+              <div
+                className="w-full max-w-md rounded-2xl border border-slate-200/70 bg-white shadow-xl shadow-slate-900/20 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between border-b border-slate-200/70 px-4 py-3">
+                  <h3 className="text-sm font-semibold text-slate-900">Edit prospect</h3>
                   <button
                     type="button"
                     onClick={() => setEditProspect(null)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50"
+                    className="p-1 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                   >
-                    Cancel
+                    <X className="w-5 h-5" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveEdit}
-                    disabled={updating || !editForm.workEmail.trim()}
-                    className="flex-1 py-2.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white text-sm font-medium"
-                  >
-                    {updating ? 'Saving…' : 'Save'}
-                  </button>
+                </div>
+                <div className="p-4 space-y-3">
+                  <TextInput
+                    placeholder="Full name"
+                    value={editForm.fullName}
+                    onChange={(v) => setEditForm((f) => ({ ...f, fullName: v }))}
+                  />
+                  <TextInput
+                    type="email"
+                    placeholder="Work email"
+                    value={editForm.workEmail}
+                    onChange={(v) => setEditForm((f) => ({ ...f, workEmail: v }))}
+                  />
+                  <TextInput
+                    placeholder="Company"
+                    value={editForm.company}
+                    onChange={(v) => setEditForm((f) => ({ ...f, company: v }))}
+                  />
+                  <TextInput
+                    placeholder="Job title"
+                    value={editForm.jobTitle}
+                    onChange={(v) => setEditForm((f) => ({ ...f, jobTitle: v }))}
+                  />
+                  {updateError ? <p className="text-xs text-red-600">{updateError.message}</p> : null}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditProspect(null)}
+                      className="flex-1 py-2.5 rounded-xl border border-slate-200/70 text-slate-800 text-sm font-medium hover:bg-slate-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      variant="primary"
+                      onClick={handleSaveEdit}
+                      disabled={updating || !editForm.workEmail.trim()}
+                      className="flex-1 py-2.5"
+                    >
+                      {updating ? 'Saving…' : 'Save'}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
