@@ -63,11 +63,29 @@ export default function ToneCard({
         {/* Personalization */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Smile className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+            <Smile
+              className={[
+                "h-4 w-4 flex-shrink-0",
+                personalizationStrength === "strong"
+                  ? "text-emerald-500"
+                  : personalizationStrength === "moderate"
+                    ? "text-amber-500"
+                    : "text-rose-400",
+              ].join(" ")}
+            />
             <span className="text-sm text-slate-700">Personalization</span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-sm font-semibold text-emerald-600">
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <span
+              className={[
+                "text-sm font-semibold",
+                personalizationStrength === "strong"
+                  ? "text-emerald-600"
+                  : personalizationStrength === "moderate"
+                    ? "text-amber-700"
+                    : "text-rose-600",
+              ].join(" ")}
+            >
               {personalizationStrength.charAt(0).toUpperCase() +
                 personalizationStrength.slice(1)}
             </span>

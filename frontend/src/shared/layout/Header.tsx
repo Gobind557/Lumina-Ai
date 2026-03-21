@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Search,
   Bell,
@@ -8,6 +8,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { ROUTES } from "../constants";
+import LuminaLogo from "../components/LuminaLogo";
 import { useDashboardFilters } from "../context/DashboardFilterContext";
 import { useDashboardNextActions } from "../../features/dashboard/hooks/useDashboard";
 
@@ -39,8 +40,15 @@ export default function Header() {
   return (
     <header className="relative z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/70 px-6 py-4">
       <div className="flex items-center justify-between gap-4">
+        <Link
+          to={ROUTES.DASHBOARD}
+          className="flex-shrink-0 rounded-lg outline-none ring-purple-400/40 focus-visible:ring-2 lg:hidden"
+          aria-label="Lumina AI home"
+        >
+          <LuminaLogo height={32} variant="light" />
+        </Link>
         {/* Search Bar */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 min-w-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input

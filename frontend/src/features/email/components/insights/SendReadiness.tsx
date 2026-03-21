@@ -3,52 +3,58 @@ import { HelpCircle, Sparkles, Smile } from "lucide-react";
 interface SendReadinessProps {
   replyProbability?: number;
   spamRisk?: "low" | "medium" | "high";
+  hintTitle?: string;
+  hintDetail?: string;
+  footnote?: string;
 }
 
 export default function SendReadiness({
-  replyProbability = 87,
+  replyProbability = 50,
+  hintTitle = "Add personalization to improve further",
+  hintDetail = "A tailored opening often boosts replies and engagement.",
+  footnote = "Best results come from a personalized opener plus a clear next step.",
 }: SendReadinessProps) {
+  const pct = Math.max(0, Math.min(100, Math.round(replyProbability)));
+  const badgeClass =
+    pct >= 72
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : pct >= 48
+        ? "bg-amber-50 text-amber-800 border-amber-200"
+        : "bg-rose-50 text-rose-700 border-rose-200";
+
   return (
     <div className="space-y-3">
-      {/* Section Header */}
       <div className="flex items-center gap-1.5">
         <h3 className="text-sm font-medium text-slate-900">Send Readiness:</h3>
-        <HelpCircle className="w-4 h-4 text-slate-400 cursor-help" />
+        <HelpCircle className="h-4 w-4 cursor-help text-slate-400" />
       </div>
 
-      {/* Reply Likelihood */}
-      <div className="glass-card p-4 space-y-3 flex-shrink-0">
+      <div className="glass-card flex-shrink-0 space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Smile className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-            <span className="text-sm text-slate-700 font-medium">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Smile className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+            <span className="text-sm font-medium text-slate-700">
               Reply Likelihood
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              {replyProbability}% 
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <span
+              className={`rounded-full border px-2 py-1 text-xs font-semibold ${badgeClass}`}
+            >
+              {pct}%
             </span>
           </div>
         </div>
 
-        {/* Suggestion */}
         <div className="flex items-start gap-2 rounded-lg border border-purple-100 bg-purple-50/60 px-3 py-2">
-          <Sparkles className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+          <Sparkles className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-600" />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-slate-900">
-              Add personalization to improve further
-            </p>
-            <p className="text-xs text-slate-600 mt-0.5">
-              A tailored opening often boosts replies and engagement.
-            </p>
+            <p className="text-sm font-medium text-slate-900">{hintTitle}</p>
+            <p className="mt-0.5 text-xs text-slate-600">{hintDetail}</p>
           </div>
         </div>
 
-        {/* Tip (AI-guidance) */}
-        <div className="text-xs text-slate-600">
-          Best results come from a personalized opener plus a clear next step.
-        </div>
+        <div className="text-xs text-slate-600">{footnote}</div>
       </div>
     </div>
   );

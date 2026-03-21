@@ -67,7 +67,7 @@ export default function GlowRing({
 
   return (
     <div
-      className={`relative rounded-xl p-[2px] transition-all duration-500 ${
+      className={`relative flex w-full min-h-0 flex-1 flex-col rounded-xl p-[2px] transition-all duration-500 ${
         shouldAnimate ? animationClass : ""
       }`}
       style={{
@@ -75,8 +75,8 @@ export default function GlowRing({
         boxShadow: boxShadow,
       }}
     >
-      {/* Inner content wrapper */}
-      <div className="relative w-full h-full rounded-xl overflow-y-auto overflow-x-hidden">
+      {/* Inner content wrapper — bounded height so compose scrolls instead of clipping */}
+      <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-xl">
         {children}
       </div>
 

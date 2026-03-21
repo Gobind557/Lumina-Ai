@@ -40,16 +40,40 @@ const buildPrompt = (payload: {
   return lines;
 };
 
-const callOpenAI = async (prompt: string) => {
+const DEFAULT_BODY_SYSTEM =
+  "Return only the rewritten email body text. Do not include explanations.";
+
+/** Stronger guardrails when the prompt already includes Subject: in context — models often echo it. */
+const PERSONALIZE_BODY_SYSTEM =
+  "Return only the email message body (greeting through sign-off). " +
+  "Do not repeat or output a subject line, the word Subject, labels, or metadata. " +
+  "Do not include explanations.";
+
+const SUBJECT_LINE_SYSTEM =
+  "Return only the subject line. No quotation marks, labels, or explanation — one line only.";
+
+/** Strip a leading \"Subject: ...\" line the model sometimes puts in the body. */
+export function stripLeadingSubjectPrefixFromBody(text: string): string {
+  if (!text || typeof text !== "string") return text;
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/);
+  let i = 0;
+  while (i < lines.length && lines[i].trim() === "") i++;
+  if (i >= lines.length) return text.trim();
+  const trimmed = lines[i].trim();
+  if (/^\*{0,2}subject\*{0,2}\s*:/i.test(trimmed)) {
+    i++;
+    while (i < lines.length && lines[i].trim() === "") i++;
+    return lines.slice(i).join("\n").trimStart();
+  }
+  return text.trimStart();
+}
+
+const callOpenAI = async (prompt: string, systemMessage: string = DEFAULT_BODY_SYSTEM) => {
   const response = await client.chat.completions.create({
     model: env.GROQ_MODEL,
     temperature: 0.7,
     messages: [
-      {
-        role: "system",
-        content:
-          "Return only the rewritten email body text. Do not include explanations.",
-      },
+      { role: "system", content: systemMessage },
       { role: "user", content: prompt },
     ],
   });
@@ -69,7 +93,8 @@ export const personalizeEmail = async (payload: {
   };
 }) => {
   const prompt = buildPrompt(payload);
-  const body = await callOpenAI(prompt);
+  const raw = await callOpenAI(prompt, PERSONALIZE_BODY_SYSTEM);
+  const body = stripLeadingSubjectPrefixFromBody(raw);
   return { body };
 };
 
@@ -79,7 +104,17 @@ export const rewriteEmail = async (payload: {
   instruction: string;
 }) => {
   const prompt = buildPrompt(payload);
-  const body = await callOpenAI(prompt);
+  const i = payload.instruction.toLowerCase();
+  const subjectFocus =
+    i.includes("subject") &&
+    /only|line|final|option|return|generate|pick|string/.test(i);
+  const raw = await callOpenAI(
+    prompt,
+    subjectFocus ? SUBJECT_LINE_SYSTEM : DEFAULT_BODY_SYSTEM,
+  );
+  const body = subjectFocus
+    ? raw
+    : stripLeadingSubjectPrefixFromBody(raw);
   return { body };
 };
 

@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { Home, Megaphone, FileText, MoreVertical, Mail, Users } from "lucide-react";
 import { clsx } from "clsx";
 import { ROUTES } from "../constants";
+import LuminaLogo from "../components/LuminaLogo";
 
 const navItems = [
   { path: ROUTES.DASHBOARD, icon: Home, label: "Dashboard" },
@@ -13,6 +14,14 @@ const navItems = [
 export default function Sidebar() {
   return (
     <aside className="hidden lg:flex lg:w-52 lg:flex-shrink-0 lg:flex-grow-0 bg-white/70 backdrop-blur-xl border-r border-slate-200/70 flex-col">
+      <div className="flex-shrink-0 border-b border-slate-200/70 p-4">
+        <NavLink
+          to={ROUTES.DASHBOARD}
+          className="flex items-center rounded-xl px-1 py-1 outline-none ring-purple-400/40 focus-visible:ring-2"
+        >
+          <LuminaLogo height={36} variant="light" />
+        </NavLink>
+      </div>
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;

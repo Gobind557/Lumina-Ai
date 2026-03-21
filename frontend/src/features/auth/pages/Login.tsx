@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { Mail, Lock, Eye } from 'lucide-react'
 import { apiRequest } from '@/shared/utils'
 import { ROUTES, AUTH_GOOGLE_LOGIN_URL } from '@/shared/constants'
+import LuminaLogo from '@/shared/components/LuminaLogo'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -40,47 +41,7 @@ export default function Login() {
         <div className="auth-card px-8 py-10">
           <div className="text-center mb-8">
             <div className="mx-auto mb-3 flex items-center justify-center">
-              <svg
-                width="140"
-                height="40"
-                viewBox="0 0 140 40"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-label="Lumina logo"
-              >
-                <defs>
-                  <linearGradient id="luminaGradientLogin" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#7C5CFF" />
-                    <stop offset="100%" stopColor="#2563EB" />
-                  </linearGradient>
-                </defs>
-                <g transform="translate(0,4)">
-                  <rect
-                    x="4"
-                    y="4"
-                    width="24"
-                    height="24"
-                    rx="6"
-                    transform="rotate(45 16 16)"
-                    fill="url(#luminaGradientLogin)"
-                  />
-                  <path
-                    d="M16 8L18.5 14.5L25 16L18.5 17.5L16 24L13.5 17.5L7 16L13.5 14.5L16 8Z"
-                    fill="white"
-                  />
-                </g>
-                <text
-                  x="44"
-                  y="26"
-                  fontFamily="Inter, system-ui, -apple-system, sans-serif"
-                  fontSize="20"
-                  fontWeight="600"
-                  fill="#0F172A"
-                  letterSpacing="-0.02em"
-                >
-                  Lumina
-                </text>
-              </svg>
+              <LuminaLogo height={40} variant="light" />
             </div>
             <h1 className="text-xl font-semibold text-slate-900">Sign in to Lumina</h1>
             <p className="text-sm text-slate-500 mt-1">

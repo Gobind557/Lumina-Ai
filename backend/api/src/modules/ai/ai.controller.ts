@@ -25,6 +25,30 @@ const feedbackSchema = z.object({
   feedback: z.string().optional(),
 });
 
+/** Model returns one string; for subject-line prompts that string belongs in `suggestion.subject`. */
+function isSubjectLineRewriteInstruction(instruction: string): boolean {
+  const i = instruction.toLowerCase();
+  if (!i.includes("subject")) return false;
+  return (
+    i.includes("only") ||
+    i.includes("final subject") ||
+    i.includes("subject line") ||
+    i.includes("return only") ||
+    i.includes("options") ||
+    i.includes("generate") ||
+    i.includes("pick the strongest")
+  );
+}
+
+function firstLine(text: string, maxLen: number): string {
+  const line = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l.length > 0);
+  if (!line) return "";
+  return line.length > maxLen ? line.slice(0, maxLen) : line;
+}
+
 export const personalize = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const payload = personalizeSchema.parse(req.body);
@@ -79,11 +103,23 @@ export const rewrite = async (req: Request, res: Response, next: NextFunction) =
       instruction: payload.instruction,
     });
 
+    const draftBody = draft.bodyText ?? draft.bodyHtml ?? "";
+    const subjectOnly = isSubjectLineRewriteInstruction(payload.instruction);
+    const newSubjectLine = firstLine(result.body, 500);
+
     return res.json({
       suggestion: {
-        subject: draft.subject ?? undefined,
-        body: result.body,
-        diff: [{ type: "replace", position: 0, text: result.body }],
+        subject: subjectOnly
+          ? newSubjectLine || (draft.subject ?? undefined)
+          : draft.subject ?? undefined,
+        body: subjectOnly ? draftBody : result.body,
+        diff: [
+          {
+            type: "replace",
+            position: 0,
+            text: subjectOnly ? newSubjectLine : result.body,
+          },
+        ],
       },
       confidence: 0.82,
       source_signals: { prospect_match: 0.7, company_match: 0.6, tone_match: 0.9 },

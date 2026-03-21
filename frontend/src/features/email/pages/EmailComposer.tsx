@@ -31,6 +31,15 @@ import { apiRequest } from "@/shared/utils";
 import { API_ENDPOINTS } from "@/shared/constants";
 import { MOCK_TEMPLATES } from "../../templates/data/mockTemplates";
 import type { EmailDraft, Prospect } from "../../../shared/types";
+import {
+  generateSuggestions,
+  highlightsFromSuggestions,
+  suggestionsToWeakPhrases,
+} from "../utils/generateSuggestions";
+import {
+  pickSuggestedSubject,
+  stripLeadingSubjectPrefixFromBody,
+} from "../utils/pickSuggestedSubject";
 
 type ProspectPayload = {
   id: string;
@@ -172,6 +181,44 @@ export default function EmailComposer() {
 
   type WeakPhrase = { text: string; hint: string };
 
+  const prospectForSuggestions = useMemo(
+    () => ({
+      company:
+        insightsProspect?.company?.trim() ||
+        recipientCompany.trim() ||
+        prospect?.company?.trim() ||
+        null,
+      first_name:
+        prospect?.first_name?.trim() ||
+        recipientName.trim().split(/\s+/)[0] ||
+        null,
+      last_name:
+        prospect?.last_name?.trim() ||
+        recipientName.trim().split(/\s+/).slice(1).join(" ") ||
+        null,
+      name: insightsProspect?.name?.trim() || recipientName.trim() || null,
+    }),
+    [
+      insightsProspect?.company,
+      insightsProspect?.name,
+      prospect?.company,
+      prospect?.first_name,
+      prospect?.last_name,
+      recipientCompany,
+      recipientName,
+    ],
+  );
+
+  const liveBodySuggestions = useMemo(
+    () => generateSuggestions(draft.content, prospectForSuggestions),
+    [draft.content, prospectForSuggestions],
+  );
+
+  const inlineHighlights = useMemo(
+    () => highlightsFromSuggestions(draft.content, liveBodySuggestions),
+    [draft.content, liveBodySuggestions],
+  );
+
   type PendingAISuggestion = {
     kind: AISuggestionKind;
     label: string;
@@ -185,43 +232,16 @@ export default function EmailComposer() {
 
   const [pendingSuggestion, setPendingSuggestion] =
     useState<PendingAISuggestion | null>(null);
-  const [appliedSuggestion, setAppliedSuggestion] =
-    useState<PendingAISuggestion | null>(null);
   const [undoSnapshot, setUndoSnapshot] = useState<{
     subject: string;
     content: string;
   } | null>(null);
+  /** What the last Apply changed — controls where the Undo control appears. */
+  const [undoIncludesBody, setUndoIncludesBody] = useState(false);
+  const [undoIncludesSubject, setUndoIncludesSubject] = useState(false);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const editorCardRef = useRef<HTMLDivElement | null>(null);
-
-  const computeWeakPhrases = (before: string): WeakPhrase[] => {
-    const phrases: WeakPhrase[] = [];
-    const lower = before.toLowerCase();
-
-    if (lower.includes("i noticed") && (lower.includes("linkedin") || lower.includes("recent"))) {
-      phrases.push({
-        text: "I noticed your recent LinkedIn post",
-        hint: "Too generic — personalize this line for better replies.",
-      });
-    }
-
-    if (recipientCompany.trim() && !lower.includes(recipientCompany.toLowerCase())) {
-      phrases.push({
-        text: "Mention company",
-        hint: "Add a company reference to increase relevance.",
-      });
-    }
-
-    if (!/\bhi\b|hello/i.test(before)) {
-      phrases.push({
-        text: "Greeting",
-        hint: "Add a short greeting to improve readability.",
-      });
-    }
-
-    return phrases.slice(0, 3);
-  };
 
   const ensureProspect = async () => {
     const email = recipientEmail.trim().toLowerCase();
@@ -395,11 +415,14 @@ export default function EmailComposer() {
     try {
       setAIState("generating");
       setPendingSuggestion(null);
-      setAppliedSuggestion(null);
       setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
       const draftId = await saveDraftNow();
       if (!draftId) {
         setAIState("idle");
+        setToastMessage("Couldn’t save draft — add a recipient and look up the prospect first.");
+        window.setTimeout(() => setToastMessage(null), 4500);
         return;
       }
       const prospectId =
@@ -407,7 +430,12 @@ export default function EmailComposer() {
         (typeof window !== "undefined"
           ? localStorage.getItem("default_prospect_id")
           : null);
-      if (!draftId || !prospectId) return;
+      if (!prospectId) {
+        setAIState("idle");
+        setToastMessage("Personalize needs a linked prospect — enter the recipient email and look them up.");
+        window.setTimeout(() => setToastMessage(null), 4500);
+        return;
+      }
       const response = await apiRequest<{
         suggestion: { subject?: string; body?: string };
         confidence: number;
@@ -429,21 +457,29 @@ export default function EmailComposer() {
 
       const beforeContent = draft.content;
       const beforeSubject = draft.subject;
+      const cleanedBody = response.suggestion?.body
+        ? stripLeadingSubjectPrefixFromBody(response.suggestion.body)
+        : undefined;
       setPendingSuggestion({
         kind: "personalize",
         label: "Personalize your email with AI",
         beforeContent,
-        afterContent: response.suggestion?.body,
+        afterContent: cleanedBody,
         beforeSubject,
         afterSubject: response.suggestion?.subject,
         confidence: response.confidence ?? 0.87,
-        weakPhrases: computeWeakPhrases(draft.content),
+        weakPhrases: suggestionsToWeakPhrases(
+          generateSuggestions(beforeContent, prospectForSuggestions),
+        ),
       });
 
       setAIState("suggested");
       setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
-    } catch {
+    } catch (e) {
       setAIState("idle");
+      const msg = e instanceof Error ? e.message : "Personalize failed";
+      setToastMessage(msg);
+      window.setTimeout(() => setToastMessage(null), 4500);
     }
   };
 
@@ -452,8 +488,9 @@ export default function EmailComposer() {
     try {
       setAIState("generating");
       setPendingSuggestion(null);
-      setAppliedSuggestion(null);
       setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
       const draftId = await saveDraftNow();
       if (!draftId) {
         setAIState("idle");
@@ -477,15 +514,21 @@ export default function EmailComposer() {
       }
       setAIConfidence(response.confidence ?? 0.87);
 
+      const beforeContentTone = draft.content;
+      const toneBody = response.suggestion?.body
+        ? stripLeadingSubjectPrefixFromBody(response.suggestion.body)
+        : undefined;
       setPendingSuggestion({
         kind: "tone",
         label: `Rewrite in ${newTone} tone`,
-        beforeContent: draft.content,
-        afterContent: response.suggestion?.body,
+        beforeContent: beforeContentTone,
+        afterContent: toneBody,
         beforeSubject: draft.subject,
         afterSubject: response.suggestion?.subject,
         confidence: response.confidence ?? 0.87,
-        weakPhrases: computeWeakPhrases(draft.content),
+        weakPhrases: suggestionsToWeakPhrases(
+          generateSuggestions(beforeContentTone, prospectForSuggestions),
+        ),
       });
       setAIState("suggested");
       setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -498,8 +541,9 @@ export default function EmailComposer() {
     try {
       setAIState("generating");
       setPendingSuggestion(null);
-      setAppliedSuggestion(null);
       setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
       const draftId = await saveDraftNow();
       if (!draftId) return;
       if (!draftId) {
@@ -521,15 +565,21 @@ export default function EmailComposer() {
       }
       setAIConfidence(response.confidence ?? 0.87);
 
+      const beforeShorten = draft.content;
+      const shortBody = response.suggestion?.body
+        ? stripLeadingSubjectPrefixFromBody(response.suggestion.body)
+        : undefined;
       setPendingSuggestion({
         kind: "shorten",
         label: "Shorten your message",
-        beforeContent: draft.content,
-        afterContent: response.suggestion?.body,
+        beforeContent: beforeShorten,
+        afterContent: shortBody,
         beforeSubject: draft.subject,
         afterSubject: undefined,
         confidence: response.confidence ?? 0.87,
-        weakPhrases: computeWeakPhrases(draft.content),
+        weakPhrases: suggestionsToWeakPhrases(
+          generateSuggestions(beforeShorten, prospectForSuggestions),
+        ),
       });
       setAIState("suggested");
       setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -542,8 +592,9 @@ export default function EmailComposer() {
     try {
       setAIState("generating");
       setPendingSuggestion(null);
-      setAppliedSuggestion(null);
       setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
       const draftId = await saveDraftNow();
       if (!draftId) {
         setAIState("idle");
@@ -564,15 +615,21 @@ export default function EmailComposer() {
       }
       setAIConfidence(response.confidence ?? 0.87);
 
+      const beforeImprove = draft.content;
+      const improveBody = response.suggestion?.body
+        ? stripLeadingSubjectPrefixFromBody(response.suggestion.body)
+        : undefined;
       setPendingSuggestion({
         kind: "improve",
         label: "Improve clarity and readability",
-        beforeContent: draft.content,
-        afterContent: response.suggestion?.body,
+        beforeContent: beforeImprove,
+        afterContent: improveBody,
         beforeSubject: draft.subject,
         afterSubject: undefined,
         confidence: response.confidence ?? 0.87,
-        weakPhrases: computeWeakPhrases(draft.content),
+        weakPhrases: suggestionsToWeakPhrases(
+          generateSuggestions(beforeImprove, prospectForSuggestions),
+        ),
       });
       setAIState("suggested");
       setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -585,15 +642,16 @@ export default function EmailComposer() {
     try {
       setAIState("generating");
       setPendingSuggestion(null);
-      setAppliedSuggestion(null);
       setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
       const draftId = await saveDraftNow();
       if (!draftId) {
         setAIState("idle");
         return;
       }
       const response = await apiRequest<{
-        suggestion: { subject?: string };
+        suggestion: { subject?: string; body?: string };
         confidence: number;
       }>(API_ENDPOINTS.AI_REWRITE, {
         method: "POST",
@@ -604,21 +662,30 @@ export default function EmailComposer() {
         }),
       });
 
-      if (response.suggestion?.subject) {
-        // Apply only via preview
-      }
       setAIConfidence(response.confidence ?? 0.87);
+
+      const afterSubject = pickSuggestedSubject(draft.subject, response.suggestion);
+      if (!afterSubject) {
+        setAIState("idle");
+        setToastMessage("No subject returned — check your AI key and try again.");
+        window.setTimeout(() => setToastMessage(null), 4500);
+        return;
+      }
 
       setPendingSuggestion({
         kind: "subject",
         label: "Generate subject with AI",
         beforeSubject: draft.subject,
-        afterSubject: response.suggestion?.subject,
+        afterSubject,
         confidence: response.confidence ?? 0.87,
       });
       setAIState("suggested");
-    } catch {
+      setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+    } catch (e) {
       setAIState("idle");
+      const msg = e instanceof Error ? e.message : "Subject generation failed";
+      setToastMessage(msg);
+      window.setTimeout(() => setToastMessage(null), 4500);
     }
   };
 
@@ -639,6 +706,10 @@ export default function EmailComposer() {
       const company = recipientCompany || prospect?.company || "";
       if (!company) return;
 
+      setUndoSnapshot(null);
+      setUndoIncludesBody(false);
+      setUndoIncludesSubject(false);
+
       const alreadyMentioned = draft.content
         .toLowerCase()
         .includes(company.toLowerCase());
@@ -653,7 +724,9 @@ export default function EmailComposer() {
         beforeContent,
         afterContent,
         confidence: 0.68,
-        weakPhrases: computeWeakPhrases(beforeContent),
+        weakPhrases: suggestionsToWeakPhrases(
+          generateSuggestions(beforeContent, prospectForSuggestions),
+        ),
       });
       setAIState("suggested");
       setTimeout(() => editorCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
@@ -664,6 +737,15 @@ export default function EmailComposer() {
     if (!pendingSuggestion) return;
     setUndoSnapshot({ subject: draft.subject, content: draft.content });
 
+    const willChangeSubject =
+      pendingSuggestion.afterSubject != null &&
+      pendingSuggestion.afterSubject !== draft.subject;
+    const willChangeBody =
+      pendingSuggestion.afterContent != null &&
+      pendingSuggestion.afterContent !== draft.content;
+    setUndoIncludesSubject(willChangeSubject);
+    setUndoIncludesBody(willChangeBody);
+
     if (pendingSuggestion.afterSubject != null) {
       updateSubject(pendingSuggestion.afterSubject);
     }
@@ -671,7 +753,6 @@ export default function EmailComposer() {
       updateContent(pendingSuggestion.afterContent);
     }
 
-    setAppliedSuggestion(pendingSuggestion);
     setPendingSuggestion(null);
     setAIState("applied");
     setToastMessage("Suggestion applied");
@@ -691,7 +772,8 @@ export default function EmailComposer() {
     updateSubject(undoSnapshot.subject);
     updateContent(undoSnapshot.content);
     setUndoSnapshot(null);
-    setAppliedSuggestion(null);
+    setUndoIncludesBody(false);
+    setUndoIncludesSubject(false);
     setAIState("idle");
     setToastMessage("Undid AI suggestion");
     window.setTimeout(() => setToastMessage(null), 1400);
@@ -718,9 +800,9 @@ export default function EmailComposer() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden relative">
+    <div className="relative flex h-full min-h-0 overflow-hidden">
       {/* Main Composer Area */}
-      <div className="flex-1 flex flex-col p-4 space-y-3 overflow-hidden min-h-0">
+      <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden p-4">
         {toastMessage ? (
           <div className="absolute left-1/2 top-4 -translate-x-1/2 z-[60] rounded-xl border border-purple-200/70 bg-white/90 backdrop-blur-xl px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg">
             {toastMessage}
@@ -809,6 +891,80 @@ export default function EmailComposer() {
                   ✨ Generate Subject
                 </button>
               </div>
+
+              {pendingSuggestion?.kind === "subject" && pendingSuggestion.afterSubject ? (
+                <div className="mt-3 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900">💡 AI Suggestion</div>
+                      <div className="text-xs text-slate-600">Generate subject with AI</div>
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      Confidence:{" "}
+                      <span className="font-semibold text-purple-700">
+                        {Math.round((pendingSuggestion.confidence ?? 0.87) * 100)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="rounded-md border border-purple-100 bg-white/70 p-2">
+                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
+                        Before
+                      </div>
+                      <div className="text-[12px] text-slate-700 whitespace-pre-wrap break-words max-h-24 overflow-auto">
+                        {pendingSuggestion.beforeSubject || "—"}
+                      </div>
+                    </div>
+                    <div className="rounded-md border border-purple-100 bg-purple-50/70 p-2">
+                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
+                        After
+                      </div>
+                      <div className="text-[12px] text-slate-900 whitespace-pre-wrap break-words max-h-24 overflow-auto">
+                        {pendingSuggestion.afterSubject || "—"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={rejectPendingSuggestion}
+                      className="inline-flex items-center rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors shadow-sm"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyPendingSuggestion}
+                      className="inline-flex items-center gap-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-2 transition-colors shadow-sm hover:shadow-md"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {undoSnapshot &&
+              !pendingSuggestion &&
+              undoIncludesSubject &&
+              !undoIncludesBody ? (
+                <div className="mt-3 rounded-lg border border-emerald-200/80 bg-emerald-50/80 px-3 py-2.5 shadow-sm flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-xs text-slate-700">
+                    <span className="font-semibold text-slate-900">Applied.</span> You can undo the
+                    subject change.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={undoAppliedSuggestion}
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50/80 transition-colors shadow-sm"
+                  >
+                    <Undo2 className="w-4 h-4" />
+                    Undo
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             {/* Email Body */}
@@ -823,6 +979,7 @@ export default function EmailComposer() {
                   value={draft.content}
                   onChange={updateContent}
                   aiScore={aiScore}
+                  inlineHighlights={inlineHighlights}
                   aiSuggestion={
                     pendingSuggestion?.afterContent != null
                       ? {
@@ -832,20 +989,16 @@ export default function EmailComposer() {
                           confidence: pendingSuggestion.confidence,
                           weakPhrases: pendingSuggestion.weakPhrases,
                         }
-                      : appliedSuggestion?.afterContent != null
-                        ? {
-                            label: appliedSuggestion.label,
-                            before: appliedSuggestion.beforeContent ?? "",
-                            after: appliedSuggestion.afterContent ?? "",
-                            confidence: appliedSuggestion.confidence,
-                            weakPhrases: appliedSuggestion.weakPhrases,
-                          }
-                        : null
+                      : null
                   }
                   onApplySuggestion={applyPendingSuggestion}
                   onRejectSuggestion={rejectPendingSuggestion}
                   onUndoSuggestion={undoAppliedSuggestion}
-                  canUndo={!!undoSnapshot && appliedSuggestion?.afterContent != null}
+                  canUndo={
+                    !!undoSnapshot &&
+                    !pendingSuggestion &&
+                    undoIncludesBody
+                  }
                 />
 
                 {/* AI Action Bar */}
@@ -921,81 +1074,6 @@ export default function EmailComposer() {
                     <ListOrdered className="w-4 h-4 text-slate-600" />
                   </button>
                 </div>
-
-              {/* Subject suggestion preview (before -> after) */}
-              {pendingSuggestion?.kind === "subject" && pendingSuggestion.afterSubject ? (
-                <div className="mt-3 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">💡 AI Suggestion</div>
-                      <div className="text-xs text-slate-600">Generate subject with AI</div>
-                    </div>
-                    <div className="text-[11px] text-slate-500">
-                      Confidence:{" "}
-                      <span className="font-semibold text-purple-700">
-                        {Math.round((pendingSuggestion.confidence ?? 0.87) * 100)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="rounded-md border border-purple-100 bg-white/70 p-2">
-                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
-                        Before
-                      </div>
-                      <div className="text-[12px] text-slate-700 whitespace-pre-wrap break-words max-h-24 overflow-auto">
-                        {pendingSuggestion.beforeSubject || "—"}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-purple-100 bg-purple-50/70 p-2">
-                      <div className="text-[11px] font-semibold text-slate-600 mb-1">
-                        After
-                      </div>
-                      <div className="text-[12px] text-slate-900 whitespace-pre-wrap break-words max-h-24 overflow-auto">
-                        {pendingSuggestion.afterSubject || "—"}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={rejectPendingSuggestion}
-                      className="inline-flex items-center rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors shadow-sm"
-                    >
-                      Reject
-                    </button>
-                    <button
-                      type="button"
-                      onClick={applyPendingSuggestion}
-                      className="inline-flex items-center gap-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-3 py-2 transition-colors shadow-sm hover:shadow-md"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {/* Undo for applied subject suggestion */}
-              {appliedSuggestion?.kind === "subject" && undoSnapshot ? (
-                <div className="mt-3 rounded-lg bg-purple-50 border border-purple-100 px-3 py-2.5 shadow-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-900">✅ Applied</div>
-                      <div className="text-xs text-slate-600">You can undo this change.</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={undoAppliedSuggestion}
-                      className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors shadow-sm"
-                    >
-                      <Undo2 className="w-4 h-4" />
-                      Undo
-                    </button>
-                  </div>
-                </div>
-              ) : null}
               </div>
             </div>
 
@@ -1057,6 +1135,8 @@ export default function EmailComposer() {
       <CopilotPanel
         draft={draft}
         prospect={insightsProspect}
+        recipientName={recipientName}
+        recipientCompany={recipientCompany}
         isNewRecipient={isNewRecipient}
         tone={tone}
         sendMode={sendMode}

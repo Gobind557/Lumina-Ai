@@ -7,12 +7,16 @@ import SendModesPanel from "../send/SendModesPanel";
 import ToneCard from "../ui/ToneCard";
 import type { EmailDraft, Prospect } from "@/shared/types";
 import type { SendMode } from "../send/SendModes";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AIState } from "../ai/GlowRing";
+import { buildCopilotReadinessState } from "../../utils/engagementMetrics";
 
 interface CopilotPanelProps {
   draft: EmailDraft;
   prospect?: Prospect;
+  /** Name / company from the compose “To” row — updates metrics before prospect is saved */
+  recipientName?: string;
+  recipientCompany?: string;
   isNewRecipient?: boolean;
   tone?: "formal" | "casual";
   sendMode?: SendMode;
@@ -25,6 +29,8 @@ interface CopilotPanelProps {
 export default function CopilotPanel({
   draft,
   prospect,
+  recipientName,
+  recipientCompany,
   isNewRecipient,
   tone = "casual",
   sendMode = "send_at_best_time",
@@ -33,22 +39,43 @@ export default function CopilotPanel({
   onApplyAISuggestion,
   aiState = "idle",
 }: CopilotPanelProps) {
-  // Calculate metrics for Send Readiness
-  const hasPersonalization =
-    draft.content.toLowerCase().includes("james") ||
-    draft.content.includes("[insert personalized text here]");
+  /** Debounce body text so Reply Likelihood / hints don’t jitter every keystroke. */
+  const [debouncedBody, setDebouncedBody] = useState(draft.content);
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedBody(draft.content), 400);
+    return () => window.clearTimeout(t);
+  }, [draft.content]);
 
-  const replyProbability = hasPersonalization ? 87 : 45;
-  const personalizationStrength = hasPersonalization
-    ? ("strong" as const)
-    : ("weak" as const);
-
-  const hasCompanyMention =
-    !!prospect?.company &&
-    draft.content.toLowerCase().includes(prospect.company.toLowerCase());
-
-  const subjectIsPresent =
-    typeof draft.subject === "string" && draft.subject.trim().length >= 6;
+  const engagement = useMemo(
+    () =>
+      buildCopilotReadinessState(
+        { ...draft, content: debouncedBody },
+        prospect,
+        {
+          recipientName,
+          recipientCompany,
+        },
+      ),
+    [
+      debouncedBody,
+      draft.subject,
+      prospect?.id,
+      prospect?.name,
+      prospect?.company,
+      recipientName,
+      recipientCompany,
+    ],
+  );
+  const {
+    replyLikelihood,
+    personalizationStrength,
+    hintTitle,
+    hintDetail,
+    footnote,
+    hasPersonalization,
+    subjectIsPresent,
+    hasCompanyMention,
+  } = engagement;
 
   const [appliedId, setAppliedId] = useState<
     "personalize" | "subject" | "company" | null
@@ -61,7 +88,7 @@ export default function CopilotPanel({
   }, [appliedId]);
 
   return (
-    <div className="w-80 bg-white/70 backdrop-blur-xl border-l border-slate-200/70 p-5 space-y-4 overflow-hidden flex flex-col h-full">
+    <div className="flex h-full min-h-0 w-80 flex-col space-y-4 overflow-hidden border-l border-slate-200/70 bg-white/70 p-5 backdrop-blur-xl">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-900">The Copilot</h2>
         <button className="p-1.5 hover:bg-slate-200/70 rounded transition-colors">
@@ -69,7 +96,7 @@ export default function CopilotPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-hidden min-h-0 flex flex-col space-y-4">
+      <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto">
         <ProspectInsights prospect={prospect} isNewRecipient={isNewRecipient} />
 
         {/* AI Suggestions */}
@@ -186,7 +213,13 @@ export default function CopilotPanel({
           </div>
         </div>
 
-        <SendReadiness replyProbability={replyProbability} spamRisk="low" />
+        <SendReadiness
+          replyProbability={replyLikelihood}
+          spamRisk="low"
+          hintTitle={hintTitle}
+          hintDetail={hintDetail}
+          footnote={footnote}
+        />
         <ToneCard
           tone={tone}
           personalizationStrength={personalizationStrength}
