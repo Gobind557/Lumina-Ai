@@ -5,6 +5,8 @@ import { apiRequest } from "../../../shared/utils";
 import TemplateDetailsForm from "../components/TemplateDetailsForm";
 import TemplateEditorCard from "../components/TemplateEditorCard";
 import LuminaInspirationCard from "../components/LuminaInspirationCard";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 const DEFAULT_CONTENT = `Hi [First Name],
 
@@ -15,6 +17,7 @@ Best regards,
 
 export default function CreateTemplate() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Follow-Up");
   const [tone, setTone] = useState<"normal" | "casual">("normal");
@@ -41,38 +44,54 @@ export default function CreateTemplate() {
           tone,
         }),
       });
+      
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      toast.success("Template created successfully");
       navigate(ROUTES.TEMPLATES);
     } catch (error) {
+      toast.error("Failed to create template");
       console.error("Failed to create template", error);
     }
   };
 
-  return (
-    <div className="min-h-full bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 relative">
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `radial-gradient(2px 2px at 20% 30%, rgba(255,255,255,0.8), transparent),
-              radial-gradient(2px 2px at 60% 70%, rgba(255,255,255,0.8), transparent),
-              radial-gradient(1px 1px at 50% 50%, rgba(255,255,255,0.6), transparent),
-              radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.6), transparent),
-              radial-gradient(2px 2px at 90% 40%, rgba(255,255,255,0.8), transparent),
-              radial-gradient(1px 1px at 33% 60%, rgba(255,255,255,0.6), transparent),
-              radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.6), transparent),
-              radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.5), transparent),
-              radial-gradient(1px 1px at 40% 80%, rgba(255,255,255,0.5), transparent),
-              radial-gradient(1px 1px at 90% 90%, rgba(255,255,255,0.5), transparent)`,
-            backgroundSize: "200% 200%",
-            backgroundPosition: "0% 0%",
-          }}
-        />
-      </div>
+  const handleImproveClarity = async () => {
+    if (!content) return;
+    try {
+      const response = await apiRequest<{ text: string }>(API_ENDPOINTS.AI_REWRITE_TEXT, {
+        method: "POST",
+        body: JSON.stringify({
+          text: content,
+          instruction: "Improve clarity and flow, ensuring professional language.",
+        }),
+      });
+      setContent(response.text);
+    } catch (error) {
+      toast.error("AI failed to improve clarity");
+    }
+  };
 
+  const handleChangeTone = async () => {
+    if (!content) return;
+    try {
+      const response = await apiRequest<{ text: string }>(API_ENDPOINTS.AI_REWRITE_TEXT, {
+        method: "POST",
+        body: JSON.stringify({
+          text: content,
+          instruction: `Rewrite this email in a ${tone === "normal" ? "casual" : "professional"} tone.`,
+        }),
+      });
+      setContent(response.text);
+    } catch (error) {
+      toast.error("AI failed to change tone");
+    }
+  };
+
+  return (
+    <div className="min-h-full bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
       <div className="relative z-10 p-6 pb-24 max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Create New Template</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
+        <div className="mb-8">
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Create New Template</h1>
+          <p className="text-sm text-slate-500 mt-1">
             Design your personalized email template for outreach campaigns.
           </p>
         </div>
@@ -94,13 +113,12 @@ export default function CreateTemplate() {
               onContentChange={setContent}
               status={title ? `Draft: ${title}` : "Draft: Untitled Template"}
               onCreateTemplate={handleCreateTemplate}
-              onImproveClarity={() => {}}
-              onChangeTone={() => {}}
-              onOptimizeReplies={() => {}}
+              onImproveClarity={handleImproveClarity}
+              onChangeTone={handleChangeTone}
             />
           </div>
           <div className="lg:col-span-3">
-            <LuminaInspirationCard />
+            <LuminaInspirationCard onSelect={(newContent) => setContent(newContent)} />
           </div>
         </div>
       </div>

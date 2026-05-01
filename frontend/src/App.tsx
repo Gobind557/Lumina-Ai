@@ -3,11 +3,14 @@ import { QueryProvider } from './core/providers/QueryProvider'
 import { AuthProvider } from './core/providers/AuthProvider'
 import { AppRouter } from './core/router'
 
+import { Toaster } from 'sonner'
+
 function App() {
   return (
     <Router>
       <QueryProvider>
         <AuthProvider>
+          <Toaster richColors position="top-right" />
           <AppRouter />
         </AuthProvider>
       </QueryProvider>

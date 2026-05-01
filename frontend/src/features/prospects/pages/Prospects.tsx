@@ -14,7 +14,6 @@ import {
   Activity,
   Clock,
   Reply,
-  Filter,
   Check,
   Calendar,
 } from 'lucide-react'

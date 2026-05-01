@@ -52,5 +52,6 @@ export const API_ENDPOINTS = {
   TEMPLATES: '/api/templates',
   AI_PERSONALIZE: '/api/ai/personalize',
   AI_REWRITE: '/api/ai/rewrite',
+  AI_REWRITE_TEXT: '/api/ai/rewrite-text',
   AI_SCORE: '/api/ai/score',
 } as const

@@ -14,6 +14,7 @@ import {
   Calendar,
   Layers
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -97,9 +98,10 @@ export default function Campaigns() {
     setOpenMenuId(null)
     try {
       await updateStatus(id, 'PAUSED')
+      toast.success('Campaign paused successfully')
       refetch()
     } catch {
-      // error handled by hook
+      toast.error('Failed to pause campaign')
     }
   }
 
@@ -108,22 +110,36 @@ export default function Campaigns() {
     setOpenMenuId(null)
     try {
       await updateStatus(id, 'ACTIVE')
+      toast.success('Campaign resumed successfully')
       refetch()
     } catch {
-      // error handled by hook
+      toast.error('Failed to resume campaign')
     }
   }
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     setOpenMenuId(null)
-    if (!window.confirm('Are you sure you want to delete this campaign? This cannot be undone.')) return
-    try {
-      await deleteCampaign(id)
-      refetch()
-    } catch {
-      // error handled by hook
-    }
+    
+    toast('Delete Campaign?', {
+      description: 'Are you sure you want to delete this campaign?',
+      action: {
+        label: 'Delete',
+        onClick: async () => {
+          try {
+            await deleteCampaign(id)
+            toast.success('Campaign deleted')
+            refetch()
+          } catch {
+            toast.error('Failed to delete campaign')
+          }
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {},
+      }
+    })
   }
 
   return (

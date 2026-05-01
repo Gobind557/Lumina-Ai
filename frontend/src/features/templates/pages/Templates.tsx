@@ -75,10 +75,10 @@ export default function Templates() {
     <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
 
       <div className="relative z-10 p-6 max-w-6xl mx-auto min-h-full">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Templates</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Templates</h1>
+            <p className="text-sm text-slate-500 mt-1">
               Manage your email templates for common outreach scenarios.
             </p>
           </div>
@@ -87,34 +87,33 @@ export default function Templates() {
               <select
                 value={myTemplatesFilter}
                 onChange={(e) => setMyTemplatesFilter(e.target.value)}
-                className="appearance-none min-w-[140px] bg-white/80 backdrop-blur-xl border border-slate-200/70 rounded-lg pl-3.5 pr-8 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400/40 cursor-pointer"
+                className="appearance-none min-w-[140px] bg-white/70 backdrop-blur-xl border border-slate-200/70 rounded-xl pl-4 pr-10 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400/40 cursor-pointer transition-all"
               >
                 <option value="My Templates">My Templates</option>
                 <option value="Team Templates">Team Templates</option>
                 <option value="All">All</option>
               </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+              <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
             <button
               onClick={() => navigate(ROUTES.TEMPLATES_NEW)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 rounded-lg text-white text-sm font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-semibold shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Pencil className="w-4 h-4" />
               New Template
-              <ChevronDown className="w-4 h-4 opacity-80" />
             </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-8">
           {TEMPLATE_CATEGORIES.map((tab) => (
             <button
               key={tab}
               onClick={() => setCategory(tab)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                 category === tab
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20"
-                  : "bg-white/70 text-slate-600 hover:bg-white border border-slate-200/70"
+                  ? "bg-slate-900 text-white shadow-lg shadow-slate-900/10"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-white/80"
               }`}
             >
               {tab}
@@ -127,17 +126,22 @@ export default function Templates() {
             Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="glass-card border border-slate-200/70 rounded-xl p-5 min-h-[220px] animate-pulse"
+                className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[24px] p-6 min-h-[240px] animate-pulse"
                 aria-hidden
               >
-                <div className="flex items-start justify-between mb-3">
-                  <span className="h-6 w-24 rounded-full bg-slate-200/70" />
-                  <span className="h-6 w-6 rounded bg-slate-200/70" />
+                <div className="flex items-center justify-between mb-6">
+                  <div className="h-4 w-24 rounded bg-slate-200/70" />
+                  <div className="h-8 w-8 rounded-xl bg-slate-200/70" />
                 </div>
-                <div className="h-5 w-3/4 rounded bg-slate-200/70 mb-2" />
-                <div className="h-4 w-full rounded bg-slate-200/70 mb-1" />
-                <div className="h-4 w-2/3 rounded bg-slate-200/70 mb-4" />
-                <div className="h-3 w-32 rounded bg-slate-200/70" />
+                <div className="h-6 w-3/4 rounded-lg bg-slate-200/70 mb-4" />
+                <div className="space-y-2 mb-6">
+                  <div className="h-4 w-full rounded bg-slate-200/70" />
+                  <div className="h-4 w-5/6 rounded bg-slate-200/70" />
+                </div>
+                <div className="flex gap-4 mt-auto">
+                  <div className="h-10 flex-1 rounded-xl bg-slate-200/70" />
+                  <div className="h-10 flex-1 rounded-xl bg-slate-200/70" />
+                </div>
               </div>
             ))
           ) : (

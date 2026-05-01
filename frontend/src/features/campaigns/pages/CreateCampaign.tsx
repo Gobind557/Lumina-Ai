@@ -6,6 +6,8 @@ import { apiRequest } from '@/shared/api/client'
 import { MOCK_TEMPLATES } from '@/features/templates/data/mockTemplates'
 import { useCreateCampaign } from '../hooks/useCreateCampaign'
 import { useProspects } from '@/features/prospects/hooks/useProspects'
+import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 const DEFAULT_DELAYS = [0, 3, 5, 7, 10]
 const TEMPLATE_VARS = ['{{firstName}}', '{{lastName}}', '{{company}}', '{{email}}']
@@ -31,6 +33,7 @@ function prospectDisplayName(p: { first_name: string | null; last_name: string |
 
 export default function CreateCampaign() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { createCampaign, loading: creating, error: createError } = useCreateCampaign()
   const { prospects: allProspects, loading: prospectsLoading } = useProspects('')
   const [campaignName, setCampaignName] = useState('Startup Cold Outreach')
@@ -108,9 +111,11 @@ export default function CreateCampaign() {
         prospectIds: selectedIds.size ? Array.from(selectedIds) : undefined,
         steps: stepsToSend.length ? stepsToSend : undefined,
       })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      toast.success('Draft saved successfully')
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
-      // error in createError
+      toast.error('Failed to save draft')
     }
   }
 
@@ -123,9 +128,11 @@ export default function CreateCampaign() {
         status: 'ACTIVE',
         steps: stepsToSend.length ? stepsToSend : undefined,
       })
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      toast.success('Campaign started successfully')
       navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))
     } catch {
-      // error in createError
+      toast.error('Failed to start campaign')
     }
   }
 

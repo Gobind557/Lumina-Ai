@@ -15,6 +15,11 @@ const rewriteSchema = z.object({
   instruction: z.string().min(3),
 });
 
+const rewriteTextSchema = z.object({
+  text: z.string().min(1),
+  instruction: z.string().min(3),
+});
+
 const scoreSchema = z.object({
   draft_id: z.string().uuid(),
 });
@@ -126,6 +131,19 @@ export const rewrite = async (req: Request, res: Response, next: NextFunction) =
       timestamp: new Date().toISOString(),
       input_hash: "sha256_hash",
     });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const rewriteText = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const payload = rewriteTextSchema.parse(req.body);
+    const result = await rewriteEmail({
+      body: payload.text,
+      instruction: payload.instruction,
+    });
+    return res.json({ text: result.body });
   } catch (error) {
     return next(error);
   }

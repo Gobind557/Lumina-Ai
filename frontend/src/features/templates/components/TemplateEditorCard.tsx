@@ -1,5 +1,17 @@
-import { useState } from "react";
-import { Sparkles, ChevronDown, HelpCircle, Loader2, Check } from "lucide-react";
+import { useState, useRef } from "react";
+import { 
+  Sparkles, 
+  ChevronDown, 
+  HelpCircle, 
+  Loader2, 
+  Bold, 
+  Italic, 
+  Link2, 
+  List, 
+  ListOrdered, 
+  Type
+} from "lucide-react";
+import { toast } from "sonner";
 
 interface TemplateEditorCardProps {
   content: string;
@@ -8,7 +20,6 @@ interface TemplateEditorCardProps {
   onCreateTemplate: () => void;
   onImproveClarity?: () => void;
   onChangeTone?: () => void;
-  onOptimizeReplies?: () => void;
 }
 
 const DEFAULT_PLACEHOLDER = `Hi [First Name],
@@ -25,61 +36,96 @@ export default function TemplateEditorCard({
   onCreateTemplate,
   onImproveClarity,
   onChangeTone,
-  onOptimizeReplies,
 }: TemplateEditorCardProps) {
   const [saveStatus, setSaveStatus] = useState("All changes saved");
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isSaving = saveStatus === "Saving...";
 
-  return (
-    <div className="glass-card border border-slate-200/70 rounded-xl p-6 pb-8 flex flex-col relative overflow-hidden">
-      <div className="relative z-10 flex flex-col flex-1">
-        <h3 className="text-lg font-semibold text-slate-900 mb-1">Template Editor</h3>
-        <p className="text-sm text-slate-500 mb-6">
-          Craft your email template below. Use the AI tools to help you optimize the content.
-        </p>
+  const applyFormatting = (prefix: string, suffix: string = prefix) => {
+    const el = textareaRef.current;
+    if (!el) return;
 
-      <div className="flex items-center justify-between mb-4 px-3 py-2 bg-white/70 rounded-xl border border-slate-200/70">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-slate-700">{status}</span>
-            <ChevronDown className="w-4 h-4 text-slate-400" />
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const before = content.substring(0, start);
+    const after = content.substring(end);
+
+    const newText = `${before}${prefix}${selectedText}${suffix}${after}`;
+    onContentChange(newText);
+    
+    // Restore focus and selection
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 0);
+  };
+
+  const simulateAiAction = async (action: string, callback?: () => void) => {
+    setIsAiProcessing(true);
+    toast.info(`AI is ${action}...`);
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsAiProcessing(false);
+    toast.success(`${action.charAt(0).toUpperCase() + action.slice(1)} completed`);
+    callback?.();
+  };
+
+  return (
+    <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-[28px] p-6 flex flex-col shadow-sm h-full">
+      <h3 className="text-lg font-semibold text-slate-900 mb-1">Template Editor</h3>
+      <p className="text-xs text-slate-500 mb-6">
+        Craft your email template below. Use AI to optimize your conversion.
+      </p>
+
+      <div className="flex items-center justify-between mb-4 px-4 py-2.5 bg-white/50 rounded-xl border border-slate-200/50">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-slate-700">{status}</span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </div>
-          <span className="text-xs text-slate-500">Drafts are auto-saved</span>
+          <span className="text-[10px] text-slate-400">Drafts are auto-saved</span>
         </div>
-        <button className="p-1 text-slate-400 hover:text-slate-700">
-          <HelpCircle className="w-4 h-4" />
-        </button>
+        <HelpCircle className="w-4 h-4 text-slate-300 hover:text-slate-600 cursor-help" />
       </div>
 
-      <div className="border border-slate-200/70 rounded-xl overflow-hidden bg-white/60 mb-4">
-        <div className="flex flex-wrap gap-1 p-2 border-b border-slate-200/70 bg-white/70">
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 font-bold text-sm">
-            B
+      <div className="border border-slate-200/70 rounded-[20px] overflow-hidden bg-white/40 mb-5 shadow-sm">
+        <div className="flex items-center gap-1 p-2 border-b border-slate-200/70 bg-white/50">
+          <button 
+            onClick={() => applyFormatting("**")}
+            className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+          >
+            <Bold className="w-4 h-4" />
           </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100 italic text-sm">
-            I
+          <button 
+            onClick={() => applyFormatting("*")}
+            className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+          >
+            <Italic className="w-4 h-4" />
           </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            🔗
+          <button 
+            onClick={() => applyFormatting("[", "](url)")}
+            className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+          >
+            <Link2 className="w-4 h-4" />
           </button>
-          <span className="w-px bg-slate-200 self-stretch my-1" />
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            ≡
+          <div className="w-px h-4 bg-slate-200 mx-1" />
+          <button 
+            onClick={() => applyFormatting("\n- ")}
+            className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+          >
+            <List className="w-4 h-4" />
           </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            ≡
-          </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            •
-          </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            1.
-          </button>
-          <button className="p-2 rounded text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-            ⋮
+          <button 
+            onClick={() => applyFormatting("\n1. ")}
+            className="p-2 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-white transition-colors"
+          >
+            <ListOrdered className="w-4 h-4" />
           </button>
         </div>
+        
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => {
             onContentChange(e.target.value);
@@ -87,52 +133,49 @@ export default function TemplateEditorCard({
             setTimeout(() => setSaveStatus("All changes saved"), 800);
           }}
           placeholder={DEFAULT_PLACEHOLDER}
-          className="w-full min-h-[200px] md:min-h-[240px] p-4 bg-transparent text-slate-900 placeholder-slate-400 resize-none focus:outline-none text-sm leading-relaxed"
+          className="w-full min-h-[220px] p-5 bg-transparent text-slate-900 placeholder-slate-400 resize-none focus:outline-none text-sm leading-relaxed"
         />
-        <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200/70 text-xs text-slate-500">
+        
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-200/70 text-[10px] text-slate-400">
           <span className="flex items-center gap-2">
             {isSaving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+              <Loader2 className="w-3 h-3 animate-spin text-indigo-500" />
             ) : (
-              <Check className="w-3.5 h-3.5 text-emerald-500" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
             )}
             {saveStatus}
           </span>
-          <ChevronDown className="w-4 h-4 text-slate-400" />
+          <div className="flex items-center gap-1">
+            <Type className="w-3 h-3" />
+            <span>{content.length} characters</span>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="grid grid-cols-2 gap-2 mb-6">
         <button
-          onClick={onImproveClarity}
-          className="flex items-center gap-2 px-3 py-2 bg-indigo-500/15 hover:bg-indigo-500/20 border border-indigo-200/70 rounded-lg text-sm text-indigo-700 transition-colors"
+          disabled={isAiProcessing}
+          onClick={() => simulateAiAction('improving clarity', onImproveClarity)}
+          className="flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-xs font-semibold text-indigo-600 hover:bg-indigo-100 transition-all disabled:opacity-50"
         >
-          <Sparkles className="w-4 h-4" />
+          {isAiProcessing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
           Improve Clarity
         </button>
         <button
-          onClick={onChangeTone}
-          className="flex items-center gap-2 px-3 py-2 bg-white/70 hover:bg-white border border-slate-200/70 rounded-lg text-sm text-slate-600 transition-colors"
+          disabled={isAiProcessing}
+          onClick={() => simulateAiAction('analyzing tone', onChangeTone)}
+          className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all disabled:opacity-50"
         >
-          Change Tone
-          <ChevronDown className="w-3 h-3" />
-        </button>
-        <button
-          onClick={onOptimizeReplies}
-          className="flex items-center gap-2 px-3 py-2 bg-white/70 hover:bg-white border border-slate-200/70 rounded-lg text-sm text-slate-600 transition-colors"
-        >
-          <Sparkles className="w-4 h-4" />
-          Optimize for Replies
+          Change Tone <ChevronDown className="w-3 h-3" />
         </button>
       </div>
 
       <button
         onClick={onCreateTemplate}
-        className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 rounded-xl text-white font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+        className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl text-white text-sm font-semibold shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
       >
         Create Template
       </button>
-      </div>
     </div>
   );
 }

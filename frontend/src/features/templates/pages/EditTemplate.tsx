@@ -89,9 +89,40 @@ export default function EditTemplate() {
     navigate(ROUTES.TEMPLATES);
   };
 
+  const handleImproveClarity = async () => {
+    if (!content) return;
+    try {
+      const response = await apiRequest<{ text: string }>(API_ENDPOINTS.AI_REWRITE_TEXT, {
+        method: "POST",
+        body: JSON.stringify({
+          text: content,
+          instruction: "Improve clarity and flow, ensuring professional language.",
+        }),
+      });
+      setContent(response.text);
+    } catch (error) {
+      console.error("AI failed", error);
+    }
+  };
+
+  const handleChangeTone = async () => {
+    if (!content) return;
+    try {
+      const response = await apiRequest<{ text: string }>(API_ENDPOINTS.AI_REWRITE_TEXT, {
+        method: "POST",
+        body: JSON.stringify({
+          text: content,
+          instruction: `Rewrite this email in a ${tone === "normal" ? "casual" : "professional"} tone.`,
+        }),
+      });
+      setContent(response.text);
+    } catch (error) {
+      console.error("AI failed", error);
+    }
+  };
+
   return (
     <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-100 relative">
-
       <div className="relative z-10 p-6 max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Edit Template</h1>
@@ -117,13 +148,12 @@ export default function EditTemplate() {
               onContentChange={setContent}
               status={title ? `Draft: ${title}` : "Draft: Untitled Template"}
               onCreateTemplate={handleSaveTemplate}
-              onImproveClarity={() => {}}
-              onChangeTone={() => {}}
-              onOptimizeReplies={() => {}}
+              onImproveClarity={handleImproveClarity}
+              onChangeTone={handleChangeTone}
             />
           </div>
           <div className="lg:col-span-3">
-            <LuminaInspirationCard />
+            <LuminaInspirationCard onSelect={(newContent) => setContent(newContent)} />
           </div>
         </div>
       </div>
