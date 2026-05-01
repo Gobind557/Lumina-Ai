@@ -71,7 +71,7 @@ const worker = new Worker(
   {
     connection: { url: env.REDIS_URL },
     stalledInterval: 300000, // 5 minutes
-    drainDelay: 60, // 60 seconds
+    drainDelay: 10, // 10 seconds
     lockDuration: 30000,
   }
 );

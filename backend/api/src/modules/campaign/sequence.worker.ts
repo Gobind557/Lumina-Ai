@@ -14,7 +14,7 @@ const worker = new Worker<CampaignStepJobData>(
   {
     connection: { url: env.REDIS_URL },
     stalledInterval: 300000,
-    drainDelay: 60,
+    drainDelay: 10,
     lockDuration: 30000,
   }
 );

@@ -14,6 +14,9 @@ import {
   Activity,
   Clock,
   Reply,
+  Filter,
+  Check,
+  Calendar,
 } from 'lucide-react'
 import type { ProspectApi } from '../api/prospects.api'
 import { useProspects } from '../hooks/useProspects'
@@ -22,7 +25,7 @@ import { useUpdateProspect } from '../hooks/useUpdateProspect'
 import { StatCard } from '../components/StatCard'
 import { StatusBadge, type ProspectStatus } from '../components/StatusBadge'
 import { TagChip } from '../components/TagChip'
-import { Button, Panel, Surface, TextInput, cx, uiTokens } from '../components/ui'
+import { Button, Panel, Surface, TextInput, cx, uiTokens, Skeleton } from '../components/ui'
 
 const STATUS_OPTIONS = ['Active', 'Pending', 'Replied'] as const
 const TAGS = [
@@ -101,6 +104,23 @@ export default function Prospects() {
     refetch,
     resetToFirstPage,
   } = useProspects()
+  
+  const [activeFilters, setActiveFilters] = useState<{
+    status: string[];
+    time: string | null;
+  }>({
+    status: [],
+    time: null
+  })
+
+  const toggleStatusFilter = (status: string) => {
+    setActiveFilters(prev => ({
+      ...prev,
+      status: prev.status.includes(status) 
+        ? prev.status.filter(s => s !== status)
+        : [...prev.status, status]
+    }))
+  }
 
   const { create, loading: creating, error: createError } = useCreateProspect(() => {
     setAddForm({ fullName: '', workEmail: '', company: '', jobTitle: '' })
@@ -157,10 +177,25 @@ export default function Prospects() {
   }))
 
   const visibleProspects = prospectsWithStatus.filter(({ prospect, status }) => {
-    if (!activeTag) return true
-    if (activeTag === 'hot') return status === 'Active'
-    if (activeTag === 'ent') return (prospect.company ?? '').length >= 12
-    if (activeTag === 'startup') return (prospect.company ?? '').length > 0 && (prospect.company ?? '').length < 12
+    // Tag filtering
+    if (activeTag) {
+      if (activeTag === 'hot' && status !== 'Active') return false
+      if (activeTag === 'ent' && (prospect.company ?? '').length < 12) return false
+      if (activeTag === 'startup' && !((prospect.company ?? '').length > 0 && (prospect.company ?? '').length < 12)) return false
+    }
+
+    // Status filtering
+    if (activeFilters.status.length > 0 && !activeFilters.status.includes(status)) return false
+
+    // Time filtering (simplified for local demo)
+    if (activeFilters.time) {
+      const date = new Date(prospect.updated_at)
+      const now = new Date()
+      const diffDays = (now.getTime() - date.getTime()) / 86400000
+      if (activeFilters.time === 'today' && diffDays > 1) return false
+      if (activeFilters.time === 'week' && diffDays > 7) return false
+    }
+
     return true
   })
 
@@ -237,27 +272,71 @@ export default function Prospects() {
                   </Button>
                   {filterOpen ? (
                     <div
-                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border shadow-lg z-20"
-                      style={{ background: uiTokens.panel, borderColor: uiTokens.border }}
+                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200"
+                      style={{ background: 'white', borderColor: uiTokens.border }}
                     >
-                      <div
-                        className="px-4 py-3 border-b text-sm font-semibold text-slate-900"
-                        style={{ borderColor: uiTokens.border }}
-                      >
-                        Quick filters
+                      <div className="p-4 space-y-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <Activity className="w-3 h-3" /> Status
+                          </div>
+                          <div className="space-y-1">
+                            {STATUS_OPTIONS.map(status => (
+                              <button
+                                key={status}
+                                onClick={() => toggleStatusFilter(status)}
+                                className={cx(
+                                  "w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-colors",
+                                  activeFilters.status.includes(status) ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"
+                                )}
+                              >
+                                {status}
+                                {activeFilters.status.includes(status) && <Check className="w-4 h-4" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                            <Calendar className="w-3 h-3" /> Last Activity
+                          </div>
+                          <div className="space-y-1">
+                            {[
+                              { id: 'today', label: 'Last 24 hours' },
+                              { id: 'week', label: 'Last 7 days' },
+                              { id: 'month', label: 'Last 30 days' },
+                            ].map(time => (
+                              <button
+                                key={time.id}
+                                onClick={() => setActiveFilters(prev => ({ ...prev, time: prev.time === time.id ? null : time.id }))}
+                                className={cx(
+                                  "w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-colors",
+                                  activeFilters.time === time.id ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"
+                                )}
+                              >
+                                {time.label}
+                                {activeFilters.time === time.id && <Check className="w-4 h-4" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-4 space-y-2 text-sm text-slate-700">
-                        <label className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded border-slate-300 text-violet-600" />
-                          Hot leads only
-                        </label>
-                        <label className="flex items-center gap-2">
-                          <input type="checkbox" className="rounded border-slate-300 text-violet-600" />
-                          Has an active sequence
-                        </label>
-                        <p className="pt-1 text-xs text-slate-500">
-                          UI-only for now — wire these to the API when available.
-                        </p>
+                      <div className="p-2 border-t bg-slate-50 flex justify-between items-center" style={{ borderColor: uiTokens.border }}>
+                        <Button 
+                          variant="ghost" 
+                          className="text-xs h-8"
+                          onClick={() => setActiveFilters({ status: [], time: null })}
+                        >
+                          Reset
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          className="text-xs h-8 px-4"
+                          onClick={() => setFilterOpen(false)}
+                        >
+                          Done
+                        </Button>
                       </div>
                     </div>
                   ) : null}
@@ -338,7 +417,27 @@ export default function Prospects() {
 
               <div className="p-2">
                 {loading ? (
-                  <div className="py-16 text-center text-sm text-slate-600">Loading…</div>
+                  <div className="space-y-3 p-2">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} className="grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 rounded-2xl border px-4 py-4" style={{ borderColor: uiTokens.border }}>
+                        <div className="flex justify-center"><Skeleton className="h-4 w-4" /></div>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-8 w-8 ml-auto" />
+                      </div>
+                    ))}
+                  </div>
                 ) : visibleProspects.length === 0 ? (
                   <div className="py-16 text-center">
                     <p className="text-sm font-medium text-slate-900">
