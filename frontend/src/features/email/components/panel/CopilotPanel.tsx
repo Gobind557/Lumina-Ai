@@ -1,4 +1,3 @@
-import { MoreVertical } from "lucide-react";
 import { Building2, Sparkles, Wand2 } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import ProspectInsights from "../insights/ProspectInsights";
@@ -91,9 +90,6 @@ export default function CopilotPanel({
     <div className="flex h-full min-h-0 w-80 flex-col space-y-4 overflow-hidden border-l border-slate-200/70 bg-white/70 p-5 backdrop-blur-xl">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-900">The Copilot</h2>
-        <button className="p-1.5 hover:bg-slate-200/70 rounded transition-colors">
-          <MoreVertical className="w-4 h-4 text-slate-500" />
-        </button>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col space-y-4 overflow-y-auto">

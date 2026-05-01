@@ -76,7 +76,7 @@ export default function GlowRing({
       }}
     >
       {/* Inner content wrapper — bounded height so compose scrolls instead of clipping */}
-      <div className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden rounded-xl">
+      <div className="relative flex flex-col min-h-0 flex-1 overflow-hidden rounded-xl">
         {children}
       </div>
 

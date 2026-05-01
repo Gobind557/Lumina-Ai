@@ -29,7 +29,7 @@ export default function SendReadiness({
         <HelpCircle className="h-4 w-4 cursor-help text-slate-400" />
       </div>
 
-      <div className="glass-card flex-shrink-0 space-y-3 p-4">
+      <div className="rounded-xl border border-purple-100 bg-purple-50/80 p-4 space-y-3 flex-shrink-0 hover:border-purple-200 transition-all duration-300">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <Smile className="h-4 w-4 flex-shrink-0 text-emerald-500" />

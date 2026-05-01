@@ -33,8 +33,8 @@ export default function ProspectInsights({
   const showEmailAsTitle = !safeName || safeName.toLowerCase() === "prospect";
 
   return (
-    <div className="glass-card p-4 space-y-3 flex-shrink-0 hover:border-slate-300/70 transition-all duration-300">
-      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+    <div className="rounded-xl border border-purple-100 bg-purple-50/80 p-4 space-y-3 flex-shrink-0 hover:border-purple-200 transition-all duration-300">
+      <h3 className="text-sm font-semibold text-slate-900 mb-1">
         Prospect Insights
       </h3>
       <div className="flex items-center gap-3">

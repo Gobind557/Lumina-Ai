@@ -42,7 +42,7 @@ export default function ToneCard({
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Second Card: Tone & Personalization */}
-      <div className="glass-card p-4 space-y-3 flex-shrink-0">
+      <div className="rounded-xl border border-purple-100 bg-purple-50/80 p-4 space-y-3 flex-shrink-0 hover:border-purple-200 transition-all duration-300">
         {/* Tone */}
         <button
           onClick={() => setIsOpen(!isOpen)}

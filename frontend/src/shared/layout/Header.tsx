@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Search,
-  Bell,
   MoreVertical,
   ChevronDown,
   LogOut,
@@ -15,7 +13,7 @@ import { useDashboardNextActions } from "../../features/dashboard/hooks/useDashb
 export default function Header() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const { weekOffset, setWeekOffset } = useDashboardFilters();
   const { nextActions, loading: actionsLoading } = useDashboardNextActions();
 
@@ -47,20 +45,9 @@ export default function Header() {
         >
           <LuminaLogo height={32} variant="light" />
         </Link>
-        {/* Search Bar */}
-        <div className="flex-shrink-0 min-w-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Q Search..."
-              className="w-64 pl-10 pr-4 py-2 bg-white/80 border border-slate-200/70 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400/40 text-sm transition"
-            />
-          </div>
-        </div>
 
         {/* Today's Focus */}
-        <div className="flex items-center gap-4 flex-1">
+        <div className="flex items-center justify-center gap-4 flex-1">
           <span className="text-sm text-slate-600 whitespace-nowrap">
             Today&apos;s Focus:
           </span>
@@ -88,70 +75,42 @@ export default function Header() {
 
         {/* Filters */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button className="relative px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm flex items-center gap-1">
-            <select
-              value={weekOffset}
-              onChange={(e) =>
-                setWeekOffset(Number(e.target.value) as 0 | 1 | 2)
-              }
-              className="bg-transparent outline-none border-none text-sm pr-4 cursor-pointer appearance-none"
+          <div className="relative">
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              onBlur={() => setTimeout(() => setFilterOpen(false), 200)}
+              className="px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm flex items-center gap-2 min-w-[120px] justify-between"
             >
-              <option value={0}>This Week</option>
-              <option value={1}>Last Week</option>
-              <option value={2}>2 Weeks Ago</option>
-            </select>
-            <ChevronDown className="w-3 h-3 pointer-events-none" />
-          </button>
-          <button className="px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm">
-            Me
-          </button>
-          <button className="px-3 py-1.5 bg-white/70 border border-slate-200/70 rounded-lg text-slate-800 hover:bg-white transition-colors text-sm flex items-center gap-1">
-            Team
-            <ChevronDown className="w-3 h-3" />
-          </button>
+              <span>{weekOffset === 0 ? "This Week" : weekOffset === 1 ? "Last Week" : "2 Weeks Ago"}</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${filterOpen ? "rotate-180" : ""}`} />
+            </button>
+            {filterOpen && (
+              <div className="absolute top-full right-0 lg:left-0 lg:right-auto mt-1.5 w-full min-w-[140px] bg-white border border-slate-200/70 rounded-xl shadow-xl shadow-slate-900/10 py-1.5 z-50">
+                {[
+                  { label: "This Week", value: 0 },
+                  { label: "Last Week", value: 1 },
+                  { label: "2 Weeks Ago", value: 2 },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      setWeekOffset(opt.value as 0 | 1 | 2);
+                      setFilterOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50/80 transition-colors ${
+                      weekOffset === opt.value ? "text-indigo-600 font-medium bg-indigo-50/50" : "text-slate-700"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-4 flex-shrink-0">
-          {/* Notifications */}
-          <div className="relative">
-            <button
-              type="button"
-              className="relative p-2 text-slate-500 hover:text-slate-900 transition-colors"
-              onClick={() => setNotificationsOpen((open) => !open)}
-              aria-haspopup="true"
-              aria-expanded={notificationsOpen}
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-semibold">
-                3
-              </span>
-            </button>
-            {notificationsOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200/70 bg-white shadow-xl shadow-slate-900/10 ring-1 ring-slate-900/5 z-50">
-                <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-900">
-                    Notifications
-                  </span>
-                  <span className="text-xs text-slate-500">3 unread</span>
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  <div className="px-4 py-3 text-xs text-slate-700 border-b border-slate-50">
-                    No notification feed is connected yet. This badge is a
-                    placeholder – wire it up to your backend when ready.
-                  </div>
-                  <button
-                    type="button"
-                    className="w-full text-xs font-medium text-indigo-600 hover:text-indigo-700 px-4 py-2.5 text-left"
-                    onClick={() => setNotificationsOpen(false)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* User Profile */}
           <button className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-white font-semibold text-sm shadow-md shadow-indigo-500/30">

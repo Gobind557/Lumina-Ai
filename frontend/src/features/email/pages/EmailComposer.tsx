@@ -7,7 +7,6 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Flag,
   List,
   ListOrdered,
   CheckCircle2,
@@ -1016,12 +1015,16 @@ export default function EmailComposer() {
                 {/* Toolbar */}
                 <div className="border-t border-slate-200/70 bg-white/70 px-3 py-1.5 flex items-center gap-1 flex-wrap flex-shrink-0">
                   <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); document.execCommand("bold", false); }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Bold"
                   >
                     <Bold className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); document.execCommand("italic", false); }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Italic"
                   >
@@ -1029,6 +1032,12 @@ export default function EmailComposer() {
                   </button>
                   <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const url = prompt("Enter link URL:");
+                      if (url) document.execCommand("createLink", false, url);
+                    }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Insert Link"
                   >
@@ -1036,38 +1045,60 @@ export default function EmailComposer() {
                   </button>
                   <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); document.execCommand("justifyLeft", false); }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Left"
                   >
                     <AlignLeft className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); document.execCommand("justifyCenter", false); }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Center"
                   >
                     <AlignCenter className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); document.execCommand("justifyRight", false); }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Align Right"
                   >
                     <AlignRight className="w-4 h-4 text-slate-600" />
                   </button>
-                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
                   <button
-                    className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
-                    title="Flag"
-                  >
-                    <Flag className="w-4 h-4 text-slate-600" />
-                  </button>
-                  <div className="w-px h-5 bg-slate-200 mx-1"></div>
-                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const selection = window.getSelection();
+                      if (selection && selection.toString().length > 0) {
+                        const text = selection.toString();
+                        const bulleted = text.split('\n').map(line => '• ' + line).join('\n');
+                        document.execCommand("insertText", false, bulleted);
+                      } else {
+                        document.execCommand("insertText", false, "• ");
+                      }
+                    }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Bullet List"
                   >
                     <List className="w-4 h-4 text-slate-600" />
                   </button>
                   <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      const selection = window.getSelection();
+                      if (selection && selection.toString().length > 0) {
+                        const text = selection.toString();
+                        const numbered = text.split('\n').map((line, i) => `${i + 1}. ${line}`).join('\n');
+                        document.execCommand("insertText", false, numbered);
+                      } else {
+                        document.execCommand("insertText", false, "1. ");
+                      }
+                    }}
                     className="p-1.5 hover:bg-slate-200/70 rounded transition-colors"
                     title="Numbered List"
                   >
