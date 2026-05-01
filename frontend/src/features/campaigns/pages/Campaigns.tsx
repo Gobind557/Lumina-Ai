@@ -1,5 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
-import { Plus, ChevronRight, MoreVertical, Star, TrendingUp, Pause, Play, Trash2 } from 'lucide-react'
+import { 
+  Plus, 
+  ChevronRight, 
+  MoreVertical, 
+  Star, 
+  TrendingUp, 
+  Pause, 
+  Play, 
+  Trash2,
+  Mail,
+  Users,
+  BarChart3,
+  Calendar,
+  Layers
+} from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '@/shared/constants'
 import { useCampaigns } from '../hooks/useCampaigns'
@@ -120,34 +134,68 @@ export default function Campaigns() {
       <div className="relative z-10 p-6 max-w-6xl mx-auto min-h-full space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900 tracking-tight">Campaigns</h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Manage your outreach sequences and monitor performance.
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Campaigns</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Manage your sequences and monitor performance in real-time.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(ROUTES.CAMPAIGNS_NEW)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-xs font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white text-sm font-semibold shadow-xl shadow-indigo-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               <Plus className="w-4 h-4" />
               New Campaign
             </button>
-            <button className="w-8 h-8 rounded-lg border border-slate-200/70 text-slate-600 flex items-center justify-center bg-white/70">
-              <MoreVertical className="w-4 h-4" />
+            <button className="w-10 h-10 rounded-xl border border-slate-200/70 text-slate-600 flex items-center justify-center bg-white/70 hover:bg-white transition-colors">
+              <MoreVertical className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white/60 backdrop-blur-md border border-white/60 p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Layers className="w-4 h-4" /></div>
+              <span className="text-xs font-medium text-slate-400">Total</span>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-bold text-slate-900">{apiCampaigns.length}</div>
+              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Campaigns Created</div>
+            </div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-md border border-white/60 p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600"><Play className="w-4 h-4" /></div>
+              <span className="text-xs font-medium text-slate-400">Active</span>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-bold text-slate-900">{apiCampaigns.filter(c => c.status === 'ACTIVE').length}</div>
+              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Running Sequences</div>
+            </div>
+          </div>
+          <div className="bg-white/60 backdrop-blur-md border border-white/60 p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="p-2 bg-purple-50 rounded-lg text-purple-600"><Mail className="w-4 h-4" /></div>
+              <span className="text-xs font-medium text-slate-400">Impact</span>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-bold text-slate-900">{apiCampaigns.reduce((sum, c) => sum + (c._count?.emails ?? 0), 0)}</div>
+              <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-0.5">Total Emails Sent</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 pt-2">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 rounded-full border transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
                 activeTab === tab
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'border-slate-200/70 text-slate-500 hover:text-slate-700 bg-white/70'
+                  ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-white/80'
               }`}
             >
               {tab}
@@ -204,32 +252,32 @@ export default function Campaigns() {
             <div
               key={campaign.id}
               onClick={() => navigate(ROUTES.CAMPAIGNS_VIEW.replace(':id', campaign.id))}
-              className="text-left bg-white/70 backdrop-blur-xl border border-white/60 rounded-2xl p-4 shadow-[0_18px_50px_rgba(30,41,59,0.12)] transition-colors relative overflow-hidden hover:border-slate-300/70 cursor-pointer"
+              className="group relative text-left bg-white/80 backdrop-blur-xl border border-white/60 rounded-[24px] p-5 shadow-sm transition-all hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-200/50 cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-white/80 via-transparent to-indigo-50/70 pointer-events-none" />
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent pointer-events-none" />
-              <div className="absolute -right-12 -top-10 h-24 w-24 rounded-full bg-indigo-400/10 blur-2xl pointer-events-none" />
-              <div className="relative z-10">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-slate-900 leading-snug">
-                      {campaign.name}
-                    </h3>
-                    <div className="text-[11px] text-slate-500 mt-1">
-                      {emailCount} emails
+              <div className="flex flex-col h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Star className="w-3.5 h-3.5 text-amber-400" />
+                      <h3 className="text-base font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                        {campaign.name}
+                      </h3>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+                      <Users className="w-3 h-3" />
+                      <span>{emailCount} prospects contacted</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-amber-400" />
+                  <div className="flex items-center gap-2 ml-3">
                     <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border shadow-sm ${
                         badgeTone === 'emerald'
-                          ? 'border-emerald-400/40 text-emerald-700 bg-emerald-500/10'
+                          ? 'border-emerald-200 text-emerald-700 bg-emerald-50'
                           : badgeTone === 'amber'
-                          ? 'border-amber-400/40 text-amber-700 bg-amber-500/10'
+                          ? 'border-amber-200 text-amber-700 bg-amber-50'
                           : badgeTone === 'indigo'
-                          ? 'border-indigo-400/40 text-indigo-700 bg-indigo-500/10'
-                          : 'border-slate-300/70 text-slate-600 bg-slate-500/10'
+                          ? 'border-indigo-200 text-indigo-700 bg-indigo-50'
+                          : 'border-slate-200 text-slate-600 bg-slate-50'
                       }`}
                     >
                       {label}
@@ -245,20 +293,20 @@ export default function Campaigns() {
                           e.stopPropagation()
                           setOpenMenuId((id) => (id === campaign.id ? null : campaign.id))
                         }}
-                        className="shrink-0 w-7 h-7 rounded-lg border border-slate-200/70 inline-flex items-center justify-center bg-white/70 hover:bg-white text-slate-500"
+                        className="w-8 h-8 rounded-xl border border-slate-200/70 inline-flex items-center justify-center bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
                       {openMenuId === campaign.id && (
-                        <div className="absolute right-0 top-full mt-1 py-1 min-w-[160px] rounded-lg border border-slate-200/70 bg-white shadow-lg z-20">
+                        <div className="absolute right-0 top-full mt-2 py-1.5 min-w-[180px] rounded-xl border border-slate-200/70 bg-white shadow-xl z-30 animate-in fade-in slide-in-from-top-2 duration-200">
                           {isPausable && (
                             <button
                               type="button"
                               onClick={(e) => handlePause(e, campaign.id)}
                               disabled={statusLoading}
-                              className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 flex items-center gap-2.5"
                             >
-                              <Pause className="w-3.5 h-3.5" /> Pause Campaign
+                              <Pause className="w-4 h-4 text-slate-400" /> Pause Campaign
                             </button>
                           )}
                           {isResumable && (
@@ -266,18 +314,19 @@ export default function Campaigns() {
                               type="button"
                               onClick={(e) => handleResume(e, campaign.id)}
                               disabled={statusLoading}
-                              className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 disabled:opacity-50 flex items-center gap-2"
+                              className="w-full text-left px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50 flex items-center gap-2.5"
                             >
-                              <Play className="w-3.5 h-3.5" /> Resume Campaign
+                              <Play className="w-4 h-4 text-emerald-500" /> Resume Campaign
                             </button>
                           )}
+                          <div className="h-px bg-slate-100 my-1 mx-2" />
                           <button
                             type="button"
                             onClick={(e) => handleDelete(e, campaign.id)}
                             disabled={deleteLoading}
-                            className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 flex items-center gap-2.5"
                           >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete Campaign
+                            <Trash2 className="w-4 h-4" /> Delete Campaign
                           </button>
                         </div>
                       )}
@@ -285,33 +334,52 @@ export default function Campaigns() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 mt-3 text-xs text-slate-600">
-                  <span>{campaign.metrics?.openRate ?? 0}% opens</span>
-                  {campaign.metrics && <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-slate-50/50 rounded-xl p-2.5 border border-slate-100">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                      <BarChart3 className="w-3 h-3" /> Open Rate
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-base font-bold text-slate-900">{campaign.metrics?.openRate ?? 0}%</span>
+                      <TrendingUp className="w-3 h-3 text-emerald-500" />
+                    </div>
+                  </div>
+                  <div className="bg-slate-50/50 rounded-xl p-2.5 border border-slate-100">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-1">
+                      <Mail className="w-3 h-3" /> Delivered
+                    </div>
+                    <div className="text-base font-bold text-slate-900">{emailCount}</div>
+                  </div>
                 </div>
 
-                <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${
-                      badgeTone === 'amber'
-                        ? 'bg-amber-400'
-                        : badgeTone === 'indigo'
-                        ? 'bg-indigo-400'
-                        : badgeTone === 'slate'
-                        ? 'bg-slate-500'
-                        : 'bg-emerald-400'
-                    }`}
-                    style={{ width: `${progress * 100}%` }}
-                  />
+                <div className="mt-auto">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Sequence Progress</span>
+                    <span className="text-[10px] font-bold text-indigo-600">{Math.round(progress * 100)}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200/30">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        badgeTone === 'amber'
+                          ? 'bg-gradient-to-r from-amber-400 to-amber-300'
+                          : badgeTone === 'indigo'
+                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-400'
+                          : badgeTone === 'slate'
+                          ? 'bg-slate-400'
+                          : 'bg-gradient-to-r from-emerald-500 to-emerald-400'
+                      }`}
+                      style={{ width: `${progress * 100}%` }}
+                    />
+                  </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>
-                    {campaign.status === 'PAUSED' ? 'Paused' : 'Last activity'} ·{' '}
-                    {formatLastActivity(campaign.updatedAt, campaign.status)}
-                  </span>
-                  <span className="flex items-center gap-1 text-indigo-600">
-                    View Campaign <ChevronRight className="w-3 h-3" />
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{formatLastActivity(campaign.updatedAt, campaign.status)}</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 group-hover:gap-2 transition-all">
+                    Details <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </div>
               </div>
