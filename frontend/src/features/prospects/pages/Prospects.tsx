@@ -7,7 +7,6 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  ChevronsRight,
   MoreHorizontal,
   X,
   Users,
@@ -24,7 +23,7 @@ import { useUpdateProspect } from '../hooks/useUpdateProspect'
 import { StatCard } from '../components/StatCard'
 import { StatusBadge, type ProspectStatus } from '../components/StatusBadge'
 import { TagChip } from '../components/TagChip'
-import { Button, Panel, Surface, TextInput, cx, uiTokens, Skeleton } from '../components/ui'
+import { Button, Panel, TextInput, cx, uiTokens, Skeleton } from '../components/ui'
 
 const STATUS_OPTIONS = ['Active', 'Pending', 'Replied'] as const
 const TAGS = [
@@ -244,63 +243,59 @@ export default function Prospects() {
       <div className="flex flex-1 min-h-0 min-w-0">
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Top control bar */}
-          <div className="shrink-0 px-6 pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <TextInput
-                  inputRef={searchInputRef}
+          <div className="shrink-0 px-8 pt-8">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                <input
+                  ref={searchInputRef}
                   type="search"
-                  placeholder="Search prospects…"
+                  placeholder="Search prospects by name, email or company…"
                   value={searchInput}
-                  onChange={(v) => {
-                    if (document.activeElement !== searchInputRef.current) return
-                    handleSearchChange(v)
-                  }}
-                  leftIcon={<Search className="h-4 w-4" />}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="w-full bg-white/70 backdrop-blur-xl border border-slate-200/60 rounded-[20px] pl-11 pr-4 py-3 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/50 transition-all shadow-sm"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <div className="relative">
-                  <Button
+                  <button
                     onClick={() => setFilterOpen((o) => !o)}
-                    variant="secondary"
-                    className="rounded-xl"
+                    className="flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
                   >
-                    Filter <ChevronDown className="h-4 w-4 text-slate-500" />
-                  </Button>
-                  {filterOpen ? (
-                    <div
-                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200"
-                      style={{ background: 'white', borderColor: uiTokens.border }}
-                    >
-                      <div className="p-4 space-y-4">
+                    Filter <ChevronDown className={cx("h-4 w-4 text-slate-400 transition-transform duration-300", filterOpen && "rotate-180")} />
+                  </button>
+                  {filterOpen && (
+                    <div className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl rounded-[24px] border border-white/60 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                      <div className="p-5 space-y-6">
                         <div>
-                          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <Activity className="w-3 h-3" /> Status
+                          <div className="flex items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <Activity className="w-3.5 h-3.5" /> Status
                           </div>
-                          <div className="space-y-1">
+                          <div className="grid grid-cols-1 gap-1.5">
                             {STATUS_OPTIONS.map(status => (
                               <button
                                 key={status}
                                 onClick={() => toggleStatusFilter(status)}
                                 className={cx(
-                                  "w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-colors",
-                                  activeFilters.status.includes(status) ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"
+                                  "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                                  activeFilters.status.includes(status) 
+                                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100" 
+                                    : "text-slate-600 hover:bg-slate-50 border border-transparent"
                                 )}
                               >
                                 {status}
-                                {activeFilters.status.includes(status) && <Check className="w-4 h-4" />}
+                                {activeFilters.status.includes(status) && <Check className="w-3.5 h-3.5" />}
                               </button>
                             ))}
                           </div>
                         </div>
 
                         <div>
-                          <div className="flex items-center gap-2 mb-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <Calendar className="w-3 h-3" /> Last Activity
+                          <div className="flex items-center gap-2 mb-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <Calendar className="w-3.5 h-3.5" /> Last Activity
                           </div>
-                          <div className="space-y-1">
+                          <div className="grid grid-cols-1 gap-1.5">
                             {[
                               { id: 'today', label: 'Last 24 hours' },
                               { id: 'week', label: 'Last 7 days' },
@@ -310,285 +305,275 @@ export default function Prospects() {
                                 key={time.id}
                                 onClick={() => setActiveFilters(prev => ({ ...prev, time: prev.time === time.id ? null : time.id }))}
                                 className={cx(
-                                  "w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-colors",
-                                  activeFilters.time === time.id ? "bg-violet-50 text-violet-700" : "text-slate-600 hover:bg-slate-50"
+                                  "w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all",
+                                  activeFilters.time === time.id 
+                                    ? "bg-indigo-50 text-indigo-600 border border-indigo-100" 
+                                    : "text-slate-600 hover:bg-slate-50 border border-transparent"
                                 )}
                               >
                                 {time.label}
-                                {activeFilters.time === time.id && <Check className="w-4 h-4" />}
+                                {activeFilters.time === time.id && <Check className="w-3.5 h-3.5" />}
                               </button>
                             ))}
                           </div>
                         </div>
                       </div>
-                      <div className="p-2 border-t bg-slate-50 flex justify-between items-center" style={{ borderColor: uiTokens.border }}>
-                        <Button 
-                          variant="ghost" 
-                          className="text-xs h-8"
+                      <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                        <button 
+                          className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
                           onClick={() => setActiveFilters({ status: [], time: null })}
                         >
-                          Reset
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          className="text-xs h-8 px-4"
+                          Reset Filters
+                        </button>
+                        <button 
+                          className="px-6 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-500 transition-all active:scale-95"
                           onClick={() => setFilterOpen(false)}
                         >
-                          Done
-                        </Button>
+                          Apply
+                        </button>
                       </div>
                     </div>
-                  ) : null}
+                  )}
                 </div>
 
-                <Button variant="secondary" onClick={() => {}} className="rounded-xl">
-                  <Download className="h-4 w-4 text-slate-500" />
-                  Import CSV
-                </Button>
+                <button 
+                  className="flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
+                >
+                  <Download className="h-4 w-4 text-slate-400" />
+                  Import
+                </button>
 
-                {!sidebarOpen ? (
-                  <Button
-                    variant="primary"
+                {!sidebarOpen && (
+                  <button
                     onClick={() => {
                       setSidebarOpen(true)
                       setTimeout(() => addNameRef.current?.focus(), 0)
                     }}
-                    className="px-4"
+                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-[20px] text-sm font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-500 transition-all active:scale-95"
                   >
-                    <Plus className="h-4 w-4" />
-                    + Add Prospect
-                  </Button>
-                ) : null}
+                    <Plus className="h-4 w-4" /> Add Prospect
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
           {/* Metrics row */}
-          <div className="shrink-0 px-6 pt-5">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Total Prospects" value={total} icon={<Users className="h-4 w-4" />} />
-              <StatCard label="Active" value={counts.active} icon={<Activity className="h-4 w-4" />} />
-              <StatCard label="Pending" value={counts.pending} icon={<Clock className="h-4 w-4" />} />
-              <StatCard label="Replied" value={counts.replied} icon={<Reply className="h-4 w-4" />} />
+          <div className="shrink-0 px-8 pt-8">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total Prospects" value={total} icon={<Users className="h-5 w-5" />} />
+              <StatCard label="Active" value={counts.active} icon={<Activity className="h-5 w-5" />} />
+              <StatCard label="Pending" value={counts.pending} icon={<Clock className="h-5 w-5" />} />
+              <StatCard label="Replied" value={counts.replied} icon={<Reply className="h-5 w-5" />} />
             </div>
           </div>
 
           {/* Table (card rows) */}
-          <div className="flex-1 min-h-0 overflow-auto px-6 pt-5 pb-6">
-            {error ? (
-              <Panel className="p-4 text-sm text-amber-700">
-                <div className="flex items-center justify-between gap-3">
-                  <span>{error.message}</span>
-                  <Button variant="secondary" onClick={() => refetch()}>
-                    Retry
-                  </Button>
-                </div>
-              </Panel>
-            ) : null}
+          <div className="flex-1 min-h-0 overflow-auto px-8 pt-8 pb-8">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between text-sm text-red-600">
+                <span className="font-medium">{error.message}</span>
+                <button onClick={() => refetch()} className="font-bold underline">Retry</button>
+              </div>
+            )}
 
-            <Surface className="mt-3 overflow-visible">
+            <div className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-[32px] overflow-hidden p-2">
               <div
-                className="grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 px-4 py-3 text-xs font-semibold text-slate-600"
-                style={{ borderBottom: `1px solid ${uiTokens.border}` }}
+                className="grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100/50"
               >
-                <label className="flex items-center justify-center">
+                <div className="flex items-center justify-center">
                   <input
                     type="checkbox"
                     checked={visibleProspects.length > 0 && selectedIds.size === visibleProspects.length}
                     onChange={toggleSelectAll}
-                    className="rounded border-slate-300 text-violet-600 focus:ring-violet-500/30"
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
                   />
-                </label>
-                <button type="button" className="flex items-center gap-1 text-left">
-                  Prospect <ChevronDown className="h-4 w-4 text-slate-400" />
+                </div>
+                <button className="flex items-center gap-1.5 text-left hover:text-slate-600 transition-colors">
+                  Prospect <ChevronDown className="h-3 w-3" />
                 </button>
-                <button type="button" className="flex items-center gap-1 text-left">
-                  Company <ChevronDown className="h-4 w-4 text-slate-400" />
+                <button className="flex items-center gap-1.5 text-left hover:text-slate-600 transition-colors">
+                  Company <ChevronDown className="h-3 w-3" />
                 </button>
-                <button type="button" className="flex items-center gap-1 text-left">
-                  Status <ChevronDown className="h-4 w-4 text-slate-400" />
+                <button className="flex items-center gap-1.5 text-left hover:text-slate-600 transition-colors">
+                  Status <ChevronDown className="h-3 w-3" />
                 </button>
-                <button type="button" className="flex items-center gap-1 text-left">
-                  Last action <ChevronDown className="h-4 w-4 text-slate-400" />
+                <button className="flex items-center gap-1.5 text-left hover:text-slate-600 transition-colors">
+                  Last Action <ChevronDown className="h-3 w-3" />
                 </button>
                 <span />
               </div>
 
-              <div className="p-2">
+              <div className="space-y-1 p-1 mt-1">
                 {loading ? (
-                  <div className="space-y-3 p-2">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} className="grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 rounded-2xl border px-4 py-4" style={{ borderColor: uiTokens.border }}>
-                        <div className="flex justify-center"><Skeleton className="h-4 w-4" /></div>
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="space-y-2">
-                            <Skeleton className="h-4 w-32" />
-                            <Skeleton className="h-3 w-24" />
-                          </div>
-                        </div>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 rounded-2xl px-6 py-5 border border-transparent">
+                      <div className="flex justify-center"><Skeleton className="h-4 w-4" /></div>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-12 w-12 rounded-full" />
                         <div className="space-y-2">
-                          <Skeleton className="h-4 w-24" />
-                          <Skeleton className="h-3 w-16" />
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-24" />
                         </div>
-                        <Skeleton className="h-6 w-16 rounded-full" />
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-8 w-8 ml-auto" />
                       </div>
-                    ))}
-                  </div>
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                      <Skeleton className="h-7 w-20 rounded-full" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-10 w-10 ml-auto rounded-full" />
+                    </div>
+                  ))
                 ) : visibleProspects.length === 0 ? (
-                  <div className="py-16 text-center">
-                    <p className="text-sm font-medium text-slate-900">
-                      No prospects yet. Add or import to get started.
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Create your first prospect from the panel on the right.
+                  <div className="py-24 flex flex-col items-center justify-center text-center">
+                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                      <Users className="w-10 h-10 text-slate-200" />
+                    </div>
+                    <h3 className="text-base font-bold text-slate-900">No prospects found</h3>
+                    <p className="mt-1 text-sm text-slate-500 max-w-[280px]">
+                      Try adjusting your filters or search terms to find what you're looking for.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {visibleProspects.map(({ prospect: p, status }) => {
-                      const name = getFullName(p)
-                      return (
-                        <div
-                          key={p.id}
-                          className={cx(
-                            'grid grid-cols-[40px_1.6fr_1fr_0.8fr_0.9fr_40px] items-center gap-2 rounded-2xl border px-4 py-4',
-                            'transition-colors',
-                            'bg-white/70 hover:bg-white',
-                          )}
-                          style={{ borderColor: uiTokens.border }}
-                        >
-                          <div className="flex items-center justify-center">
-                            <input
-                              type="checkbox"
-                              checked={selectedIds.has(p.id)}
-                              onChange={() => toggleSelect(p.id)}
-                              className="rounded border-slate-300 text-violet-600 focus:ring-violet-500/30"
-                            />
+                  visibleProspects.map(({ prospect: p, status }) => {
+                    const name = getFullName(p)
+                    return (
+                      <div
+                        key={p.id}
+                        className={cx(
+                          'grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 rounded-[20px] px-6 py-5',
+                          'transition-all duration-300 border border-transparent',
+                          'bg-white/0 hover:bg-white hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-0.5',
+                          selectedIds.has(p.id) && 'bg-indigo-50/30 border-indigo-100 shadow-sm'
+                        )}
+                      >
+                        <div className="flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(p.id)}
+                            onChange={() => toggleSelect(p.id)}
+                            className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className={cx(
+                            "h-12 w-12 shrink-0 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg relative overflow-hidden",
+                            status === 'Active' ? 'bg-gradient-to-br from-indigo-500 to-violet-500' :
+                            status === 'Replied' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' :
+                            'bg-gradient-to-br from-slate-400 to-slate-500'
+                          )}>
+                            <div className="absolute inset-0 bg-white/10" />
+                            <span className="relative z-10">{getInitials(p)}</span>
                           </div>
-
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-10 w-10 shrink-0 rounded-full border border-slate-200/70 bg-gradient-to-br from-indigo-500 to-sky-500 flex items-center justify-center text-sm font-semibold text-white shadow-md shadow-indigo-500/20">
-                              {getInitials(p)}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold text-slate-900">{name}</div>
-                              <div className="truncate text-xs text-slate-500">{p.email}</div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Building2 className="h-4 w-4 shrink-0 text-slate-400" />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm text-slate-800">{p.company || '—'}</div>
-                              <div className="truncate text-xs text-slate-500">{p.job_title || '—'}</div>
-                            </div>
-                          </div>
-
-                          <div>
-                            <StatusBadge status={status} />
-                          </div>
-
-                          <div className="text-sm text-slate-600">{formatLastAction(p.updated_at)}</div>
-
-                          <div className="relative flex justify-end">
-                            <Button
-                              variant="ghost"
-                              className="h-9 w-9 px-0"
-                              onClick={() =>
-                                setRowMenuOpenId((current) => (current === p.id ? null : p.id))
-                              }
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                            {rowMenuOpenId === p.id ? (
-                              <div
-                                className="absolute right-0 top-full mt-1 w-44 overflow-hidden rounded-2xl border shadow-lg z-50"
-                                style={{ background: uiTokens.panel, borderColor: uiTokens.border }}
-                              >
-                                <button
-                                  type="button"
-                                  className="w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-white"
-                                  onClick={() => {
-                                    setEditProspect(p)
-                                    setRowMenuOpenId(null)
-                                  }}
-                                >
-                                  Edit prospect
-                                </button>
-                                <button
-                                  type="button"
-                                  className="w-full px-3 py-2 text-left text-sm text-slate-800 hover:bg-white"
-                                  onClick={() => {
-                                    setDetailsProspect(p)
-                                    setRowMenuOpenId(null)
-                                  }}
-                                >
-                                  View details
-                                </button>
-                              </div>
-                            ) : null}
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-bold text-slate-900 leading-tight mb-0.5">{name}</div>
+                            <div className="truncate text-[11px] font-medium text-slate-400">{p.email}</div>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
+
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Building2 className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                            <span className="truncate text-sm font-semibold text-slate-700">{p.company || '—'}</span>
+                          </div>
+                          <span className="truncate text-[11px] font-medium text-slate-400 pl-5">{p.job_title || '—'}</span>
+                        </div>
+
+                        <div>
+                          <StatusBadge status={status} />
+                        </div>
+
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-600">{formatLastAction(p.updated_at)}</span>
+                          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">Last Activity</span>
+                        </div>
+
+                        <div className="relative flex justify-end">
+                          <button
+                            onClick={() => setRowMenuOpenId((current) => (current === p.id ? null : p.id))}
+                            className="h-10 w-10 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                          >
+                            <MoreHorizontal className="h-5 w-5" />
+                          </button>
+                          {rowMenuOpenId === p.id && (
+                            <div className="absolute right-0 top-full mt-2 w-48 bg-white/95 backdrop-blur-xl rounded-2xl border border-white/60 shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                              <button
+                                onClick={() => {
+                                  setEditProspect(p)
+                                  setRowMenuOpenId(null)
+                                }}
+                                className="w-full px-5 py-3 text-left text-xs font-bold text-slate-600 hover:bg-indigo-50/50 hover:text-indigo-600 transition-colors"
+                              >
+                                Edit Prospect
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setDetailsProspect(p)
+                                  setRowMenuOpenId(null)
+                                }}
+                                className="w-full px-5 py-3 text-left text-xs font-bold text-slate-600 hover:bg-indigo-50/50 hover:text-indigo-600 transition-colors"
+                              >
+                                View Detailed History
+                              </button>
+                              <div className="h-px bg-slate-100 mx-4" />
+                              <button className="w-full px-5 py-3 text-left text-xs font-bold text-red-500 hover:bg-red-50 transition-colors">
+                                Delete Prospect
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
                 )}
               </div>
-            </Surface>
+            </div>
 
             {/* Pagination */}
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                {start}-{end} of {total}
+            <div className="mt-8 flex items-center justify-between px-2">
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Showing {start}-{end} <span className="mx-1 text-slate-300">/</span> {total} Prospects
               </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="secondary"
+              <div className="flex items-center gap-2">
+                <button
                   onClick={() => setPage(page - 1)}
                   disabled={page === 0}
-                  className="h-9 w-9 px-0"
+                  className="w-10 h-10 rounded-full border border-slate-200/60 bg-white/70 hover:bg-white flex items-center justify-center text-slate-400 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                </Button>
-                {Array.from({ length: Math.min(6, totalPages) }, (_, i) => {
-                  const p = page < 3 ? i : page - 2 + i
-                  if (p >= totalPages) return null
-                  const active = p === page
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPage(p)}
-                      className={cx(
-                        'min-w-[2.25rem] h-9 rounded-xl text-sm font-medium transition-colors border',
-                        active
-                          ? 'bg-[#7c3aed]/10 text-[#6d28d9] border-[#7c3aed]/25'
-                          : 'bg-white/70 text-slate-700 border-slate-200/70 hover:bg-white',
-                      )}
-                    >
-                      {p + 1}
-                    </button>
-                  )
-                })}
-                <Button
-                  variant="secondary"
+                </button>
+                
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-100/50 rounded-2xl border border-slate-200/30">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const p = page < 3 ? i : page - 2 + i
+                    if (p >= totalPages) return null
+                    const active = p === page
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={cx(
+                          'w-8 h-8 rounded-xl text-xs font-bold transition-all',
+                          active
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                            : 'text-slate-500 hover:bg-white hover:text-indigo-600'
+                        )}
+                      >
+                        {p + 1}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <button
                   onClick={() => setPage(page + 1)}
                   disabled={page >= totalPages - 1}
-                  className="h-9 w-9 px-0"
+                  className="w-10 h-10 rounded-full border border-slate-200/60 bg-white/70 hover:bg-white flex items-center justify-center text-slate-400 hover:text-indigo-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
                 >
                   <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setPage(totalPages - 1)}
-                  disabled={page >= totalPages - 1}
-                  className="h-9 w-9 px-0"
-                >
-                  <ChevronsRight className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             </div>
           </div>
