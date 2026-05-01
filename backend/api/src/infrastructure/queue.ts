@@ -1,7 +1,8 @@
 import { Queue } from "bullmq";
+import { getRedisClient } from "./redisClient";
 import { env } from "../config/env";
 
-const connection = { connection: { url: env.REDIS_URL } };
+const connection = { connection: getRedisClient() };
 
 export const emailQueue = new Queue("email-send", connection);
 export const campaignStepQueue = new Queue("campaign-step", connection);

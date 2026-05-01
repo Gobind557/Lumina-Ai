@@ -1,15 +1,12 @@
 import Redis from "ioredis";
+import { getRedisClient } from "./redisClient";
 import { env } from "../config/env";
 import { EVENT_CHANNEL, type DomainEvent } from "../modules/email/email.events";
 
 let subscriber: Redis | null = null;
-let publisher: Redis | null = null;
 
 function getPublisher(): Redis {
-  if (!publisher) {
-    publisher = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
-  }
-  return publisher;
+  return getRedisClient();
 }
 
 export async function publish<E extends DomainEvent>(
@@ -26,7 +23,10 @@ export function subscribe(
   handler: (event: DomainEvent) => void | Promise<void>
 ): () => void {
   if (!subscriber) {
-    subscriber = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null });
+    subscriber = new Redis(env.REDIS_URL, { 
+      maxRetriesPerRequest: null,
+      keepAlive: 30000
+    });
   }
   const set = new Set(eventTypes);
 
@@ -57,10 +57,6 @@ export function subscribe(
 }
 
 export async function closeEventBus(): Promise<void> {
-  if (publisher) {
-    await publisher.quit();
-    publisher = null;
-  }
   if (subscriber) {
     await subscriber.quit();
     subscriber = null;

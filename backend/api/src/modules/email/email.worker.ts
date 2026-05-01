@@ -68,7 +68,12 @@ const worker = new Worker(
       throw error;
     }
   },
-  connection
+  {
+    connection: { url: env.REDIS_URL },
+    stalledInterval: 300000, // 5 minutes
+    drainDelay: 60, // 60 seconds
+    lockDuration: 30000,
+  }
 );
 
 worker.on("failed", (job, err) => {

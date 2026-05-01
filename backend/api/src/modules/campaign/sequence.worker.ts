@@ -11,7 +11,12 @@ const worker = new Worker<CampaignStepJobData>(
     const { campaignId, prospectId, userId, stepNumber } = job.data;
     await executeCampaignStep({ campaignId, prospectId, userId, stepNumber });
   },
-  connection
+  {
+    connection: { url: env.REDIS_URL },
+    stalledInterval: 300000,
+    drainDelay: 60,
+    lockDuration: 30000,
+  }
 );
 
 worker.on("failed", (job, err) => {
