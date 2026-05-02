@@ -243,8 +243,8 @@ export default function Prospects() {
       <div className="flex flex-1 min-h-0 min-w-0">
         <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Top control bar */}
-          <div className="shrink-0 px-8 pt-8">
-            <div className="flex items-center gap-4">
+          <div className="shrink-0 px-4 lg:px-8 pt-4 lg:pt-8">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
               <div className="flex-1 relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                 <input
@@ -257,11 +257,11 @@ export default function Prospects() {
                 />
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="relative">
+              <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3">
+                <div className="relative flex-1 md:flex-none">
                   <button
                     onClick={() => setFilterOpen((o) => !o)}
-                    className="flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
+                    className="w-full md:w-auto justify-center flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
                   >
                     Filter <ChevronDown className={cx("h-4 w-4 text-slate-400 transition-transform duration-300", filterOpen && "rotate-180")} />
                   </button>
@@ -337,7 +337,7 @@ export default function Prospects() {
                 </div>
 
                 <button 
-                  className="flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
+                  className="flex-1 md:flex-none justify-center flex items-center gap-2 px-5 py-3 bg-white/70 hover:bg-white border border-slate-200/60 rounded-[20px] text-sm font-semibold text-slate-600 transition-all shadow-sm active:scale-95"
                 >
                   <Download className="h-4 w-4 text-slate-400" />
                   Import
@@ -349,7 +349,7 @@ export default function Prospects() {
                       setSidebarOpen(true)
                       setTimeout(() => addNameRef.current?.focus(), 0)
                     }}
-                    className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-[20px] text-sm font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-500 transition-all active:scale-95"
+                    className="flex-1 md:flex-none justify-center flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-[20px] text-sm font-bold shadow-xl shadow-indigo-500/20 hover:bg-indigo-500 transition-all active:scale-95"
                   >
                     <Plus className="h-4 w-4" /> Add Prospect
                   </button>
@@ -359,9 +359,9 @@ export default function Prospects() {
           </div>
 
           {/* Metrics row */}
-          <div className="shrink-0 px-8 pt-8">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Total Prospects" value={total} icon={<Users className="h-5 w-5" />} />
+          <div className="shrink-0 px-4 lg:px-8 pt-6 lg:pt-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+              <StatCard label="Total" value={total} icon={<Users className="h-5 w-5" />} />
               <StatCard label="Active" value={counts.active} icon={<Activity className="h-5 w-5" />} />
               <StatCard label="Pending" value={counts.pending} icon={<Clock className="h-5 w-5" />} />
               <StatCard label="Replied" value={counts.replied} icon={<Reply className="h-5 w-5" />} />
@@ -369,7 +369,7 @@ export default function Prospects() {
           </div>
 
           {/* Table (card rows) */}
-          <div className="flex-1 min-h-0 overflow-auto px-8 pt-8 pb-8">
+          <div className="flex-1 min-h-0 overflow-hidden px-4 lg:px-8 pt-6 lg:pt-8 pb-4 lg:pb-8 flex flex-col">
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between text-sm text-red-600">
                 <span className="font-medium">{error.message}</span>
@@ -377,10 +377,12 @@ export default function Prospects() {
               </div>
             )}
 
-            <div className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-[32px] overflow-hidden p-2">
-              <div
-                className="grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100/50"
-              >
+            <div className="bg-white/40 backdrop-blur-sm border border-white/60 rounded-[32px] overflow-hidden p-2 flex-1 flex flex-col min-h-0">
+              <div className="overflow-x-auto min-h-0 flex-1">
+                <div className="min-w-[800px]">
+                  <div
+                    className="grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100/50"
+                  >
                 <div className="flex items-center justify-center">
                   <input
                     type="checkbox"
@@ -402,10 +404,10 @@ export default function Prospects() {
                   Last Action <ChevronDown className="h-3 w-3" />
                 </button>
                 <span />
-              </div>
+                  </div>
 
-              <div className="space-y-1 p-1 mt-1">
-                {loading ? (
+                  <div className="space-y-1 p-1 mt-1">
+                    {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="grid grid-cols-[48px_1.6fr_1fr_0.8fr_0.9fr_48px] items-center gap-4 rounded-2xl px-6 py-5 border border-transparent">
                       <div className="flex justify-center"><Skeleton className="h-4 w-4" /></div>
@@ -528,6 +530,8 @@ export default function Prospects() {
                     )
                   })
                 )}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -581,9 +585,9 @@ export default function Prospects() {
 
         {/* Right panel */}
         {sidebarOpen ? (
-          <aside className="w-[360px] shrink-0 border-l" style={{ borderColor: uiTokens.border }}>
-            <div className="h-full overflow-y-auto p-6 space-y-5">
-              <Panel className="overflow-hidden">
+          <aside className="fixed inset-y-0 right-0 z-40 lg:z-auto lg:relative w-full lg:w-[360px] shrink-0 border-l bg-slate-50/95 lg:bg-transparent backdrop-blur-xl transition-all shadow-2xl lg:shadow-none" style={{ borderColor: uiTokens.border }}>
+            <div className="h-full overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-5">
+              <Panel className="overflow-hidden bg-white/90 lg:bg-white shadow-xl lg:shadow-none">
                 <div className="flex items-start justify-between gap-3 px-4 py-4">
                   <div className="min-w-0">
                     <h3 className="text-sm font-semibold text-slate-900">Add Prospect</h3>
@@ -638,7 +642,7 @@ export default function Prospects() {
                 </div>
               </Panel>
 
-              <Panel className="overflow-hidden">
+              <Panel className="overflow-hidden bg-white/90 lg:bg-white shadow-xl lg:shadow-none">
                 <div className="flex items-center justify-between px-4 py-4">
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900">Tags</h3>

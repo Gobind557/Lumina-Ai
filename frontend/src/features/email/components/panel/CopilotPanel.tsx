@@ -87,7 +87,7 @@ export default function CopilotPanel({
   }, [appliedId]);
 
   return (
-    <div className="flex h-full min-h-0 w-80 flex-col space-y-4 overflow-hidden border-l border-slate-200/70 bg-white/70 p-5 backdrop-blur-xl">
+    <div className="flex lg:h-full min-h-[400px] lg:min-h-0 w-full lg:w-80 flex-col space-y-4 lg:overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-200/70 bg-white/70 p-5 backdrop-blur-xl shrink-0">
       <div className="flex items-center justify-between mb-2 flex-shrink-0">
         <h2 className="text-xl font-semibold text-slate-900">The Copilot</h2>
       </div>

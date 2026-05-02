@@ -4,13 +4,20 @@ import {
   MoreVertical,
   ChevronDown,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 import { ROUTES } from "../constants";
 import LuminaLogo from "../components/LuminaLogo";
 import { useDashboardFilters } from "../context/DashboardFilterContext";
 import { useDashboardNextActions } from "../../features/dashboard/hooks/useDashboard";
 
-export default function Header() {
+interface HeaderProps {
+  onMenuToggle?: () => void;
+  isMobileMenuOpen?: boolean;
+}
+
+export default function Header({ onMenuToggle, isMobileMenuOpen }: HeaderProps) {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -36,18 +43,32 @@ export default function Header() {
   };
 
   return (
-    <header className="relative z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/70 px-6 py-4">
-      <div className="flex items-center justify-between gap-4">
-        <Link
-          to={ROUTES.DASHBOARD}
-          className="flex-shrink-0 rounded-lg outline-none ring-purple-400/40 focus-visible:ring-2 lg:hidden"
-          aria-label="Lumina AI home"
-        >
-          <LuminaLogo height={32} variant="light" />
-        </Link>
+    <header className="relative z-40 bg-white/70 backdrop-blur-xl border-b border-slate-200/70 px-4 md:px-6 py-4">
+      <div className="flex items-center justify-between gap-2 md:gap-4">
+        <div className="flex items-center gap-2">
+          {onMenuToggle && (
+            <button
+              onClick={onMenuToggle}
+              className="lg:hidden p-2 -ml-2 text-slate-600 hover:text-slate-900 focus:outline-none flex items-center justify-center transition-transform duration-300"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6 animate-in spin-in-90 duration-300" />
+              ) : (
+                <Menu className="w-6 h-6 animate-in -spin-in-90 duration-300" />
+              )}
+            </button>
+          )}
+          <Link
+            to={ROUTES.DASHBOARD}
+            className="flex-shrink-0 rounded-lg outline-none ring-purple-400/40 focus-visible:ring-2 lg:hidden"
+            aria-label="Lumina AI home"
+          >
+            <LuminaLogo height={28} variant="light" />
+          </Link>
+        </div>
 
         {/* Today's Focus */}
-        <div className="flex items-center justify-center gap-4 flex-1">
+        <div className="hidden md:flex items-center justify-center gap-4 flex-1">
           <span className="text-sm text-slate-600 whitespace-nowrap">
             Today&apos;s Focus:
           </span>

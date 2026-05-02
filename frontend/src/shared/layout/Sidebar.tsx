@@ -11,9 +11,27 @@ const navItems = [
   { path: ROUTES.TEMPLATES, icon: FileText, label: "Templates" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
-    <aside className="hidden lg:flex lg:w-52 lg:flex-shrink-0 lg:flex-grow-0 bg-white/70 backdrop-blur-xl border-r border-slate-200/70 flex-col">
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={onClose}
+        />
+      )}
+      <aside 
+        className={clsx(
+          "fixed inset-y-0 left-0 z-50 flex flex-col bg-white/95 backdrop-blur-xl border-r border-slate-200/70 w-64 lg:w-52 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 h-full",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
       <div className="flex-shrink-0 border-b border-slate-200/70 p-4">
         <NavLink
           to={ROUTES.DASHBOARD}
@@ -63,6 +81,7 @@ export default function Sidebar() {
           <MoreVertical className="w-5 h-5" />
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -15,17 +15,14 @@ export function useEmailDraft(initialDraft?: EmailDraft) {
       updatedAt: new Date(),
     }
   )
-  const appliedInitialId = useRef<string | null>(null)
+  const appliedInitialDraft = useRef<EmailDraft | undefined>(undefined)
 
   useEffect(() => {
-    if (!initialDraft?.id) {
-      appliedInitialId.current = null
-      return
-    }
-    if (appliedInitialId.current === initialDraft.id) return
-    appliedInitialId.current = initialDraft.id
+    if (!initialDraft) return
+    if (appliedInitialDraft.current === initialDraft) return
+    appliedInitialDraft.current = initialDraft
     setDraft(initialDraft)
-  }, [initialDraft?.id, initialDraft?.subject, initialDraft?.content])
+  }, [initialDraft])
 
   const ensureProspectId = useCallback(async () => {
     if (draft.prospectId) return draft.prospectId

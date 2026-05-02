@@ -799,9 +799,9 @@ export default function EmailComposer() {
   }
 
   return (
-    <div className="relative flex h-full min-h-0 overflow-hidden">
+    <div className="relative flex flex-col lg:flex-row h-full min-h-0 overflow-y-auto lg:overflow-hidden">
       {/* Main Composer Area */}
-      <div className="flex min-h-0 flex-1 flex-col space-y-3 overflow-hidden p-4">
+      <div className="flex min-h-[600px] lg:min-h-0 flex-1 flex-col space-y-3 lg:overflow-hidden p-4 shrink-0 lg:shrink">
         {toastMessage ? (
           <div className="absolute left-1/2 top-4 -translate-x-1/2 z-[60] rounded-xl border border-purple-200/70 bg-white/90 backdrop-blur-xl px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg">
             {toastMessage}
