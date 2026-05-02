@@ -165,9 +165,12 @@ export const brevoWebhook = async (
     // eslint-disable-next-line no-console
     console.log("[Brevo webhook] Received", { event, messageId: msgId, tags });
 
-    // Brevo may send "opened", "unique_opened", "uniqueOpened", or "open"
-    const openEvents = ["opened", "unique_opened", "uniqueOpened", "open"];
-    if (!openEvents.includes(event)) {
+    // Brevo fires BOTH "opened" (every open) and "unique_opened" (first open).
+    // We only process unique opens to avoid duplicate records in analytics.
+    const uniqueOpenEvents = ["unique_opened", "uniqueOpened"];
+    if (!uniqueOpenEvents.includes(event)) {
+      // eslint-disable-next-line no-console
+      console.log("[Brevo webhook] Ignoring non-unique event:", event);
       return res.status(200).json({ accepted: true });
     }
 

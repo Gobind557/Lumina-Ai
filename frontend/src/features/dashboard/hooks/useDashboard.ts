@@ -13,6 +13,7 @@ export function useDashboardStats() {
     queryKey: ['dashboard', 'stats'],
     queryFn: () => dashboardApi.getStats(),
     refetchInterval: REFETCH_STATS_MS,
+    staleTime: 0,
   })
   return { stats: stats ?? null, loading, error: error ?? null, refetch }
 }
@@ -22,6 +23,7 @@ export function useDashboardTimeline(days: number = 7) {
     queryKey: ['dashboard', 'timeline', days],
     queryFn: () => dashboardApi.getTimeline(days),
     refetchInterval: REFETCH_STATS_MS,
+    staleTime: 0,
   })
   return { timeline: timeline ?? null, loading, error: error ?? null }
 }
@@ -31,6 +33,7 @@ export function useDashboardMomentum() {
     queryKey: ['dashboard', 'momentum'],
     queryFn: () => dashboardApi.getMomentum(),
     refetchInterval: REFETCH_MOMENTUM_MS,
+    staleTime: 0,
   })
   return { momentum: momentum ?? null, loading, error: error ?? null }
 }
@@ -40,6 +43,7 @@ export function useDashboardCampaigns() {
     queryKey: ['dashboard', 'campaigns'],
     queryFn: () => dashboardApi.getCampaigns(),
     refetchInterval: REFETCH_STATS_MS,
+    staleTime: 0,
   })
   return { campaigns, loading, error: error ?? null }
 }
@@ -49,6 +53,7 @@ export function useDashboardBestTime() {
     queryKey: ['dashboard', 'best-time'],
     queryFn: () => dashboardApi.getBestTime(),
     refetchInterval: REFETCH_STATS_MS,
+    staleTime: 0,
   })
   return { bestTime: data ?? null, loading, error: error ?? null }
 }
@@ -58,6 +63,7 @@ export function useDashboardNextActions() {
     queryKey: ['dashboard', 'next-actions'],
     queryFn: () => dashboardApi.getNextActions(),
     refetchInterval: REFETCH_MOMENTUM_MS,
+    staleTime: 0,
   })
 
   return {

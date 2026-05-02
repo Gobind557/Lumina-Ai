@@ -15,6 +15,7 @@ import {
   Loader2,
   Sparkles,
   Undo2,
+  X,
 } from "lucide-react";
 import {
   CopilotPanel,
@@ -410,6 +411,16 @@ export default function EmailComposer() {
     };
   }, [sentEmailId, sendStatus]);
 
+  useEffect(() => {
+    let timer: number;
+    if (sendStatus === "sent" || sendStatus === "failed") {
+      timer = window.setTimeout(() => {
+        setSendStatus("idle");
+      }, 5000);
+    }
+    return () => clearTimeout(timer);
+  }, [sendStatus]);
+
   const handlePersonalize = async () => {
     try {
       setAIState("generating");
@@ -802,11 +813,60 @@ export default function EmailComposer() {
     <div className="relative flex flex-col lg:flex-row h-full min-h-0 overflow-y-auto lg:overflow-hidden">
       {/* Main Composer Area */}
       <div className="flex min-h-[600px] lg:min-h-0 flex-1 flex-col space-y-3 lg:overflow-hidden p-4 shrink-0 lg:shrink">
-        {toastMessage ? (
-          <div className="absolute left-1/2 top-4 -translate-x-1/2 z-[60] rounded-xl border border-purple-200/70 bg-white/90 backdrop-blur-xl px-4 py-2 text-sm font-semibold text-slate-900 shadow-lg">
-            {toastMessage}
-          </div>
-        ) : null}
+        {/* Floating Notifications (Toasts) */}
+        <div className="absolute left-1/2 top-6 -translate-x-1/2 z-[60] flex flex-col items-center gap-3 pointer-events-none w-full max-w-sm">
+          {toastMessage && (
+            <div className="pointer-events-auto animate-in slide-in-from-top-4 fade-in zoom-in-95 duration-300 rounded-2xl border border-purple-200/70 bg-white/95 backdrop-blur-xl px-5 py-2.5 text-sm font-semibold text-slate-900 shadow-xl shadow-purple-500/10 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              {toastMessage}
+            </div>
+          )}
+
+          {sendStatus !== "idle" && (
+            <div
+              className={`pointer-events-auto animate-in slide-in-from-top-4 fade-in zoom-in-95 duration-300 flex items-center gap-3 px-5 py-3 rounded-2xl text-sm font-medium border shadow-xl backdrop-blur-xl w-full max-w-[320px] ${
+                sendStatus === "sending"
+                  ? "bg-white/95 text-slate-700 border-slate-200/70 shadow-slate-200/50"
+                  : sendStatus === "queued"
+                  ? "bg-indigo-50/95 text-indigo-700 border-indigo-200/70 shadow-indigo-500/10"
+                  : sendStatus === "sent"
+                  ? "bg-emerald-50/95 text-emerald-700 border-emerald-200/70 shadow-emerald-500/10"
+                  : "bg-rose-50/95 text-rose-700 border-rose-200/70 shadow-rose-500/10"
+              }`}
+            >
+              {sendStatus === "sending" && (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <span className="flex-1">Preparing your email…</span>
+                </>
+              )}
+              {sendStatus === "queued" && (
+                <>
+                  <Clock3 className="w-5 h-5" />
+                  <span className="flex-1">Step 1 queued. Tracking engagement…</span>
+                </>
+              )}
+              {sendStatus === "sent" && (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span className="flex-1">Sent successfully</span>
+                  <button onClick={() => setSendStatus("idle")} className="p-1 hover:bg-emerald-100 rounded-full text-emerald-600 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              {sendStatus === "failed" && (
+                <>
+                  <AlertTriangle className="w-5 h-5" />
+                  <span className="flex-1">Send failed. Check SMTP.</span>
+                  <button onClick={() => setSendStatus("idle")} className="p-1 hover:bg-rose-100 rounded-full text-rose-600 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <div className="rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
@@ -1110,52 +1170,12 @@ export default function EmailComposer() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 flex-shrink-0 p-3 border-t border-slate-200/70">
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-col items-end gap-2 w-full max-w-sm ml-auto">
                 <SendModes
                   onSendModeChange={handleSendModeChange}
                   defaultMode={sendMode}
                   onSend={handleSend}
                 />
-                {sendStatus !== "idle" && (
-                  <div
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border w-full max-w-[320px] ${
-                      sendStatus === "sending"
-                        ? "bg-slate-50 text-slate-600 border-slate-200"
-                        : sendStatus === "queued"
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        : sendStatus === "sent"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-rose-50 text-rose-700 border-rose-200"
-                    }`}
-                  >
-                    {sendStatus === "sending" && (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="flex-1">Preparing your email…</span>
-                      </>
-                    )}
-                    {sendStatus === "queued" && (
-                      <>
-                        <Clock3 className="w-4 h-4" />
-                        <span className="flex-1">
-                          Step 1 queued. Tracking engagement…
-                        </span>
-                      </>
-                    )}
-                    {sendStatus === "sent" && (
-                      <>
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span className="flex-1">Sent successfully</span>
-                      </>
-                    )}
-                    {sendStatus === "failed" && (
-                      <>
-                        <AlertTriangle className="w-4 h-4" />
-                        <span className="flex-1">Send failed. Check SMTP.</span>
-                      </>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
